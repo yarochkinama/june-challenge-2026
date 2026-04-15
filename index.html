@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Habit Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Habit Tracker</h1>
+      <p class="date" id="today-date"></p>
+    </header>
+
+    <section class="add-habit">
+      <input
+        type="text"
+        id="habit-input"
+        placeholder="Add a new habit..."
+        maxlength="60"
+      />
+      <button id="add-btn">Add</button>
+    </section>
+
+    <section class="habits-list" id="habits-list">
+      <!-- habits rendered here -->
+    </section>
+
+    <footer id="footer"></footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
