@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserProfile {
+  id          String   @id @default(cuid())
+  slug        String   @unique // "masha" | "vanya"
+  name        String
+  prizeTitle  String
+  prizeEmoji  String
+  colorScheme String   @default("rose")
+  createdAt   DateTime @default(now())
+
+  tasks         Task[]
+  weightEntries WeightEntry[]
+}
+
+enum TaskType {
+  ONE_TIME
+  DAILY
+  WEEKLY_COUNT
+  COUNTER
+  WEIGHT_CHECKPOINT
+}
+
+model Task {
+  id             String   @id @default(cuid())
+  userProfileId  String
+  title          String
+  category       String
+  type           TaskType
+  targetCount    Int      @default(1)
+  weekNumber     Int?
+  thresholdValue Float?
+  order          Int      @default(0)
+
+  userProfile UserProfile      @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  completions TaskCompletion[]
+}
+
+model TaskCompletion {
+  id        String   @id @default(cuid())
+  taskId    String
+  date      String   @default("none") // "none" for ONE_TIME, "YYYY-MM-DD" for dated
+  completed Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, date])
+}
+
+model WeightEntry {
+  id            String   @id @default(cuid())
+  userProfileId String
+  date          String // YYYY-MM-DD
+  weight        Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, date])
+}

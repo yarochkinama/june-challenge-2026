@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-inter: 'Inter', system-ui, sans-serif;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased;
+    min-height: 100dvh;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-slate-100;
+  }
+
+  .btn-check {
+    @apply w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 cursor-pointer select-none;
+  }
+
+  .btn-check.checked {
+    @apply border-transparent;
+  }
+
+  .progress-bar-inner {
+    @apply h-full rounded-full transition-all duration-500 ease-out;
+  }
+
+  /* Day grid cells */
+  .day-cell {
+    @apply aspect-square rounded-xl flex items-center justify-center text-xs font-semibold cursor-pointer
+      transition-all duration-150 select-none;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

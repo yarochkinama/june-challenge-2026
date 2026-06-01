@@ -1,0 +1,16 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "habit-tracker",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3002,
+      "cwd": "/Users/leveltravel/claude/habit-tracker",
+      "env": {
+        "DATABASE_URL": "postgresql://fake:fake@localhost:5432/fake",
+        "PORT": "3002"
+      }
+    }
+  ]
+}
