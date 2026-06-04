@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Финансы</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #F2F2F7;
+      color: #1C1C1E;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .header {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(242,242,247,0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+      padding: 14px 20px 0;
+    }
+    .header-top {
+      max-width: 680px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    .header h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.4px; }
+    .header-date { font-size: 14px; color: #8E8E93; font-weight: 500; }
+
+    /* ── Tab bar ── */
+    .tab-bar {
+      max-width: 680px; margin: 0 auto;
+      display: flex; gap: 0;
+      border-bottom: 0;
+    }
+    .tab-btn {
+      flex: 1; padding: 10px 16px;
+      background: none; border: none;
+      font-size: 14px; font-weight: 600;
+      color: #8E8E93; cursor: pointer;
+      border-bottom: 2.5px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      font-family: inherit;
+    }
+    .tab-btn.active-shared { color: #007AFF; border-bottom-color: #007AFF; }
+    .tab-btn.active-masha  { color: #BF5AF2; border-bottom-color: #BF5AF2; }
+    .tab-btn:hover:not(.active-shared):not(.active-masha) { color: #3C3C43; }
+
+    /* ── Layout ── */
+    .page { max-width: 680px; margin: 0 auto; padding: 20px 16px 64px; }
+
+    .section-label {
+      font-size: 12px; font-weight: 600; color: #8E8E93;
+      text-transform: uppercase; letter-spacing: 0.6px;
+      margin: 24px 0 10px 2px;
+    }
+
+    /* ── Hero Cards ── */
+    .hero-stack { display: flex; flex-direction: column; gap: 14px; }
+
+    .hero-card {
+      border-radius: 22px; padding: 22px 24px;
+      color: white; position: relative; overflow: hidden;
+    }
+    .hero-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.13) 0%, transparent 55%);
+      pointer-events: none; z-index: 0;
+    }
+    .hero-card > * { position: relative; z-index: 1; }
+    .hero-card.credit  { background: linear-gradient(145deg, #FF3B30 0%, #C0392B 100%); }
+    .hero-card.bcn     { background: linear-gradient(145deg, #5856D6 0%, #3B39B0 100%); }
+    .hero-card.networth{ background: linear-gradient(145deg, #2C2C2E 0%, #1C1C1E 100%); }
+    .hero-card.masha-main { background: linear-gradient(145deg, #BF5AF2 0%, #9B35D1 100%); }
+
+    .hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    .hero-tag {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.6px;
+      text-transform: uppercase; opacity: 0.72; margin-bottom: 6px;
+    }
+    .hero-amount {
+      font-size: 32px; font-weight: 800;
+      letter-spacing: -0.8px; margin-bottom: 2px; line-height: 1.1;
+    }
+    .hero-sub { font-size: 13px; opacity: 0.68; margin-bottom: 14px; }
+
+    .prog-track {
+      background: rgba(255,255,255,0.2); border-radius: 100px;
+      height: 6px; margin-bottom: 6px; position: relative; overflow: visible;
+    }
+    .prog-fill {
+      height: 100%; border-radius: 100px;
+      background: rgba(255,255,255,0.85);
+      transition: width 0.55s cubic-bezier(0.4,0,0.2,1);
+      min-width: 0; position: relative; z-index: 1;
+    }
+    .prog-dot {
+      position: absolute; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 13px; height: 13px; border-radius: 50%;
+      background: transparent; border: 2px solid rgba(255,255,255,0.75); z-index: 2;
+    }
+    .prog-labels { display: flex; justify-content: space-between; font-size: 11px; opacity: 0.62; }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.16); border-radius: 100px;
+      padding: 5px 12px; font-size: 12px; font-weight: 600; margin-top: 12px;
+    }
+
+    /* ── Accounts ── */
+    .accounts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .acc-card {
+      background: white; border-radius: 18px; padding: 18px 20px; cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04);
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .acc-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+    .acc-card:active { transform: scale(0.97); }
+
+    .acc-icon { font-size: 26px; margin-bottom: 10px; display: block; }
+    .acc-name { font-size: 12px; color: #8E8E93; font-weight: 500; margin-bottom: 3px; }
+    .acc-balance { font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+    .acc-note { font-size: 11px; color: #AEAEB2; margin-top: 4px; }
+
+    .c-red    { color: #FF3B30; }
+    .c-green  { color: #30B95B; }
+    .c-blue   { color: #007AFF; }
+    .c-purple { color: #BF5AF2; }
+    .c-orange { color: #FF9500; }
+
+    /* ── Add Button ── */
+    .btn-add {
+      width: 100%; padding: 16px;
+      border: none; border-radius: 16px;
+      font-size: 16px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: opacity 0.12s, transform 0.12s;
+      margin-bottom: 14px; color: white;
+    }
+    .btn-add:hover { opacity: 0.9; }
+    .btn-add:active { transform: scale(0.98); }
+    .btn-add.shared { background: #007AFF; box-shadow: 0 4px 16px rgba(0,122,255,0.28); }
+    .btn-add.masha  { background: #BF5AF2; box-shadow: 0 4px 16px rgba(191,90,242,0.28); }
+
+    /* ── Sync indicator ── */
+    .sync-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; color: #8E8E93; padding: 4px 10px;
+      background: white; border-radius: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+      margin-bottom: 12px;
+    }
+    .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: #30B95B; }
+    .sync-dot.syncing { background: #FF9500; animation: pulse 1s infinite; }
+    .sync-dot.error   { background: #FF3B30; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ── Transactions ── */
+    .tx-wrap {
+      background: white; border-radius: 18px; overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04);
+    }
+    .tx-item {
+      display: flex; align-items: center;
+      padding: 13px 18px; gap: 13px;
+      border-bottom: 1px solid #F2F2F7;
+    }
+    .tx-item:last-child { border-bottom: none; }
+
+    .tx-icon {
+      width: 42px; height: 42px; border-radius: 13px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .tx-icon.in  { background: #E5F9EE; }
+    .tx-icon.out { background: #FFF0EF; }
+
+    .tx-body { flex: 1; min-width: 0; }
+    .tx-comment { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tx-meta { font-size: 12px; color: #8E8E93; margin-top: 2px; }
+    .tx-amt { font-size: 15px; font-weight: 600; white-space: nowrap; }
+    .tx-amt.in  { color: #30B95B; }
+    .tx-amt.out { color: #FF3B30; }
+
+    .tx-del {
+      background: none; border: none; color: #C7C7CC; cursor: pointer;
+      font-size: 13px; padding: 6px 8px; border-radius: 8px; flex-shrink: 0;
+      transition: color 0.12s, background 0.12s;
+    }
+    .tx-del:hover { color: #FF3B30; background: #FFF0EF; }
+
+    .tx-empty { text-align: center; padding: 48px 20px; color: #AEAEB2; }
+    .tx-empty span { font-size: 36px; display: block; margin-bottom: 10px; }
+
+    /* ── Password overlay ── */
+    .pwd-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .pwd-card {
+      background: white; border-radius: 28px;
+      padding: 36px 28px; width: 100%; max-width: 360px;
+      text-align: center;
+      animation: slideUp 0.3s cubic-bezier(0.32,0.72,0,1);
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .pwd-emoji { font-size: 48px; margin-bottom: 16px; }
+    .pwd-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .pwd-hint  { font-size: 14px; color: #8E8E93; margin-bottom: 24px; }
+    .pwd-error { color: #FF3B30; font-size: 13px; margin-top: 8px; min-height: 18px; }
+    .btn-pwd-cancel {
+      width: 100%; padding: 14px; background: #F2F2F7;
+      color: #8E8E93; border: none; border-radius: 14px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      font-family: inherit; margin-top: 10px;
+      transition: background 0.12s;
+    }
+    .btn-pwd-cancel:hover { background: #E5E5EA; }
+
+    /* ── Modal ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      z-index: 100; opacity: 0; pointer-events: none;
+      transition: opacity 0.22s;
+      display: flex; align-items: flex-end; justify-content: center;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: white; border-radius: 28px 28px 0 0;
+      width: 100%; max-width: 680px;
+      transform: translateY(100%);
+      transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+      max-height: 92vh; overflow-y: auto;
+      padding-bottom: env(safe-area-inset-bottom, 8px);
+    }
+    .overlay.open .modal { transform: translateY(0); }
+
+    .modal-inner { padding: 0 20px 24px; }
+    .modal-handle {
+      width: 36px; height: 4px; background: #E5E5EA;
+      border-radius: 100px; margin: 12px auto 20px;
+    }
+    .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+
+    .field { margin-bottom: 16px; }
+    .field label { font-size: 13px; font-weight: 500; color: #8E8E93; display: block; margin-bottom: 7px; }
+    .input {
+      width: 100%; padding: 14px 16px;
+      border: 1.5px solid #E5E5EA; border-radius: 13px;
+      font-size: 16px; font-family: inherit; outline: none;
+      color: #1C1C1E; background: white;
+      transition: border-color 0.14s; -webkit-appearance: none;
+    }
+    .input:focus { border-color: #007AFF; }
+    .input:focus.masha-focus { border-color: #BF5AF2; }
+
+    .acc-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .acc-pick-btn {
+      padding: 12px 14px; border: 1.5px solid #E5E5EA; border-radius: 14px;
+      background: white; cursor: pointer; text-align: left;
+      transition: all 0.12s; font-family: inherit;
+    }
+    .acc-pick-btn.selected { border-color: #007AFF; background: #EFF6FF; }
+    .acc-pick-btn.selected.masha-sel { border-color: #BF5AF2; background: #F8EEFF; }
+    .acc-pick-icon { font-size: 18px; margin-bottom: 5px; display: block; }
+    .acc-pick-name { font-size: 11px; color: #8E8E93; font-weight: 500; display: block; }
+    .acc-pick-bal  { font-size: 13px; font-weight: 600; display: block; margin-top: 2px; }
+
+    .sign-row { display: flex; gap: 8px; }
+    .sign-btn {
+      flex: 1; padding: 13px; border: 1.5px solid #E5E5EA; border-radius: 13px;
+      background: white; font-size: 22px; font-weight: 700; cursor: pointer;
+      transition: all 0.12s; font-family: inherit; line-height: 1;
+    }
+    .sign-btn.on-plus  { border-color: #30B95B; background: #E5F9EE; color: #1E8640; }
+    .sign-btn.on-minus { border-color: #FF3B30; background: #FFF0EF; color: #CC2020; }
+    .sign-hint { font-size: 13px; color: #8E8E93; margin-top: 8px; min-height: 18px; }
+
+    .btn-submit {
+      width: 100%; padding: 16px; color: white; border: none;
+      border-radius: 16px; font-size: 16px; font-weight: 600;
+      cursor: pointer; font-family: inherit; margin-top: 8px;
+      transition: opacity 0.12s;
+    }
+    .btn-submit:hover { opacity: 0.9; }
+    .btn-submit.shared { background: #007AFF; }
+    .btn-submit.masha  { background: #BF5AF2; }
+
+    .btn-io {
+      flex: 1; padding: 13px 16px;
+      background: #F2F2F7; color: #1C1C1E;
+      border: none; border-radius: 14px;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: opacity 0.12s;
+    }
+    .btn-io-sec { background: #F2F2F7; color: #8E8E93; }
+    .btn-io:active { opacity: 0.7; }
+
+    @media (max-width: 400px) {
+      .hero-row { grid-template-columns: 1fr; }
+      .hero-amount { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-top">
+    <h1>💰 Финансы</h1>
+    <span class="header-date" id="hDate"></span>
+  </div>
+  <div class="tab-bar">
+    <button id="tab-shared" class="tab-btn active-shared" onclick="switchTab('shared')">Общие</button>
+    <button id="tab-masha"  class="tab-btn"               onclick="switchTab('masha')">💜 Маши</button>
+  </div>
+</header>
+
+<!-- Password gate overlay -->
+<div id="pwdOverlay" class="pwd-overlay" style="display:none" onclick="pwdOverlayClick(event)">
+  <div class="pwd-card" id="pwdCard">
+    <div class="pwd-emoji">💜</div>
+    <div class="pwd-title">Личные финансы Маши</div>
+    <div class="pwd-hint" id="pwdHint">Введи пароль</div>
+    <input type="password" class="input" id="pwdInput"
+           placeholder="Пароль"
+           onkeydown="if(event.key==='Enter')checkPwd()">
+    <div class="pwd-error" id="pwdError"></div>
+    <button class="btn-submit masha" onclick="checkPwd()" style="margin-top:16px">Войти</button>
+    <button class="btn-pwd-cancel" onclick="cancelPwd()">Отмена</button>
+  </div>
+</div>
+
+<main class="page">
+
+  <div class="section-label" id="overviewLabel">Обзор</div>
+  <div id="heroSection"></div>
+
+  <div class="section-label">Счета</div>
+  <div class="accounts-grid" id="accsGrid"></div>
+
+  <div class="section-label">Операции</div>
+  <button class="btn-add shared" id="btnAdd" onclick="openModal()">+ Записать операцию</button>
+  <div id="syncBadge" style="display:none" class="sync-badge">
+    <div class="sync-dot" id="syncDot"></div>
+    <span id="syncText">Синхронизировано</span>
+  </div>
+  <div class="tx-wrap" id="txWrap"></div>
+
+  <div class="section-label" style="margin-top:32px">Данные</div>
+  <div style="display:flex;gap:10px;margin-bottom:8px">
+    <button class="btn-io" onclick="exportData()">💾 Экспорт</button>
+    <button class="btn-io btn-io-sec" onclick="importData()">📂 Импорт</button>
+  </div>
+  <div style="font-size:12px;color:#8E8E93;line-height:1.5">
+    Экспорт — скачивает файл с данными (бэкап или перенос).<br>
+    Импорт — загружает ранее сохранённый файл.
+  </div>
+  <input type="file" id="importFile" accept=".json" style="display:none" onchange="importFile(event)">
+
+</main>
+
+<!-- Transaction Modal -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <div class="modal-inner">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="modalTitle">Новая операция</div>
+
+      <div class="field">
+        <label>Счёт</label>
+        <div class="acc-picker" id="accPicker"></div>
+      </div>
+
+      <div class="field">
+        <label>Направление</label>
+        <div class="sign-row">
+          <button class="sign-btn" id="btnPlus"  onclick="setSign(1)">+</button>
+          <button class="sign-btn" id="btnMinus" onclick="setSign(-1)">−</button>
+        </div>
+        <div class="sign-hint" id="signHint"></div>
+      </div>
+
+      <div class="field">
+        <label>Сумма</label>
+        <input type="number" class="input" id="amtInput" placeholder="0" min="1" inputmode="decimal">
+      </div>
+
+      <div class="field">
+        <label>Комментарий</label>
+        <input type="text" class="input" id="cmtInput" placeholder="Зарплата, оплата кредитки…">
+      </div>
+
+      <div class="field">
+        <label>Дата</label>
+        <input type="date" class="input" id="dtInput">
+      </div>
+
+      <button class="btn-submit shared" id="btnSubmit" onclick="submit()">Записать</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════
+const KEY_SHARED  = 'finances_v2';
+const KEY_MASHA   = 'finances_masha_v1';
+const KEY_PWD     = 'finances_masha_pwd';
+const API_URL     = '/api/finances';
+
+const CREDIT_START = 439000;
+const BCN_GOAL     = 250000;
+const BCN_M1       = 130000;
+const CREDIT_DL    = '2026-07-31';
+const BCN_DL_AUG   = '2026-08-10';
+
+const DEFAULTS_SHARED = {
+  accounts: [
+    { id:'credit', name:'Кредитка',     icon:'💳', type:'debt',       balance:439000, note:'Закрыть к 31 июля' },
+    { id:'mag',    name:'Вклад · Маг',  icon:'🎓', type:'savings',    balance:190000, note:'Магистратура' },
+    { id:'invest', name:'Инвестиции',   icon:'📈', type:'investment', balance:80000,  note:'' },
+    { id:'vklad',  name:'Вклад 3 мес',  icon:'⏳', type:'savings',    balance:50000,  note:'До конца июля' },
+    { id:'bcn',    name:'Барселона',    icon:'✈️', type:'goal',       balance:40000,  note:'/ 250 000 ₽' },
+  ],
+  txs: []
+};
+
+const DEFAULTS_MASHA = {
+  accounts: [
+    { id:'main',    name:'Основной',    icon:'💜', type:'savings',    balance:0, note:'' },
+    { id:'savings', name:'Накопления',  icon:'🏦', type:'savings',    balance:0, note:'' },
+    { id:'invest',  name:'Инвестиции',  icon:'📈', type:'investment', balance:0, note:'' },
+    { id:'goal',    name:'Цель',        icon:'🎯', type:'goal',       balance:0, note:'' },
+  ],
+  txs: []
+};
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let D_shared, D_masha, D;
+let activeTab      = 'shared';
+let mashaUnlocked  = false;
+let mashaApiLoaded = false;
+let mashaApiSaveTimer = null;
+let syncStatus     = 'ok'; // 'ok' | 'syncing' | 'error'
+let selAccId = null, selSign = 1;
+
+// ══════════════════════════════════════════════
+//  PERSISTENCE
+// ══════════════════════════════════════════════
+function loadShared() {
+  try {
+    let raw = localStorage.getItem(KEY_SHARED);
+    if (!raw) {
+      const old = localStorage.getItem('finances_v1');
+      if (old) { raw = old; localStorage.setItem(KEY_SHARED, old); localStorage.removeItem('finances_v1'); }
+    }
+    D_shared = raw ? JSON.parse(raw) : null;
+    if (!D_shared || !Array.isArray(D_shared.accounts) || !D_shared.accounts.find(a => a.id === 'credit')) {
+      D_shared = JSON.parse(JSON.stringify(DEFAULTS_SHARED));
+    }
+  } catch { D_shared = JSON.parse(JSON.stringify(DEFAULTS_SHARED)); }
+}
+
+function loadMashaLocal() {
+  try {
+    const raw = localStorage.getItem(KEY_MASHA);
+    D_masha = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULTS_MASHA));
+  } catch { D_masha = JSON.parse(JSON.stringify(DEFAULTS_MASHA)); }
+}
+
+async function syncMashaFromAPI() {
+  if (mashaApiLoaded) return;
+  setSyncStatus('syncing');
+  try {
+    const resp = await fetch(`${API_URL}?id=masha`);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const { data } = await resp.json();
+    if (data) {
+      const parsed = JSON.parse(data);
+      // Merge: prefer API data (it's the source of truth)
+      D_masha = parsed;
+      localStorage.setItem(KEY_MASHA, data);
+    }
+    mashaApiLoaded = true;
+    setSyncStatus('ok');
+    if (activeTab === 'masha') render();
+  } catch (e) {
+    console.warn('API sync failed, using local cache', e);
+    mashaApiLoaded = true;
+    setSyncStatus('error');
+  }
+}
+
+function scheduleMashaSave() {
+  setSyncStatus('syncing');
+  clearTimeout(mashaApiSaveTimer);
+  mashaApiSaveTimer = setTimeout(async () => {
+    try {
+      const resp = await fetch(API_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: 'masha', data: JSON.stringify(D_masha) })
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      setSyncStatus('ok');
+    } catch (e) {
+      console.warn('API save failed', e);
+      setSyncStatus('error');
+    }
+  }, 1200);
+}
+
+function setSyncStatus(status) {
+  syncStatus = status;
+  const badge = document.getElementById('syncBadge');
+  const dot   = document.getElementById('syncDot');
+  const text  = document.getElementById('syncText');
+  if (activeTab !== 'masha') { badge.style.display = 'none'; return; }
+  badge.style.display = 'inline-flex';
+  dot.className = 'sync-dot' + (status === 'syncing' ? ' syncing' : status === 'error' ? ' error' : '');
+  text.textContent = status === 'syncing' ? 'Сохранение…' : status === 'error' ? 'Ошибка сети · данные локально' : 'Синхронизировано ☁️';
+}
+
+function persist() {
+  if (activeTab === 'shared') {
+    localStorage.setItem(KEY_SHARED, JSON.stringify(D_shared));
+  } else {
+    localStorage.setItem(KEY_MASHA, JSON.stringify(D_masha));
+    scheduleMashaSave();
+  }
+}
+
+function acc(id) { return D.accounts.find(a => a.id === id); }
+
+// ══════════════════════════════════════════════
+//  TAB SWITCHING
+// ══════════════════════════════════════════════
+function switchTab(tab) {
+  if (tab === 'masha' && !mashaUnlocked) {
+    showPwdGate();
+    return;
+  }
+  _activateTab(tab);
+}
+
+function _activateTab(tab) {
+  activeTab = tab;
+  D = tab === 'shared' ? D_shared : D_masha;
+
+  document.getElementById('tab-shared').className =
+    'tab-btn' + (tab === 'shared' ? ' active-shared' : '');
+  document.getElementById('tab-masha').className =
+    'tab-btn' + (tab === 'masha'  ? ' active-masha'  : '');
+
+  // Update add-button and submit-button colours
+  document.getElementById('btnAdd').className    = 'btn-add ' + tab;
+  document.getElementById('btnSubmit').className = 'btn-submit ' + tab;
+
+  if (tab === 'masha') {
+    document.getElementById('syncBadge').style.display = 'inline-flex';
+    setSyncStatus(syncStatus);
+    if (!mashaApiLoaded) syncMashaFromAPI();
+  } else {
+    document.getElementById('syncBadge').style.display = 'none';
+  }
+
+  render();
+}
+
+// ══════════════════════════════════════════════
+//  PASSWORD GATE
+// ══════════════════════════════════════════════
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function showPwdGate() {
+  const hasPwd = !!localStorage.getItem(KEY_PWD);
+  document.getElementById('pwdHint').textContent =
+    hasPwd ? 'Введи пароль для доступа' : 'Первый вход — придумай пароль';
+  document.getElementById('pwdInput').value  = '';
+  document.getElementById('pwdError').textContent = '';
+  document.getElementById('pwdOverlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('pwdInput').focus(), 150);
+}
+
+function hidePwdGate() {
+  document.getElementById('pwdOverlay').style.display = 'none';
+}
+
+function cancelPwd() { hidePwdGate(); }
+
+function pwdOverlayClick(e) {
+  if (e.target === document.getElementById('pwdOverlay')) cancelPwd();
+}
+
+async function checkPwd() {
+  const input  = document.getElementById('pwdInput').value;
+  const errEl  = document.getElementById('pwdError');
+  if (!input) { errEl.textContent = 'Введи пароль'; return; }
+
+  const stored = localStorage.getItem(KEY_PWD);
+  const hash   = await sha256(input);
+
+  if (!stored) {
+    // First time — set password
+    if (input.length < 3) { errEl.textContent = 'Минимум 3 символа'; return; }
+    localStorage.setItem(KEY_PWD, hash);
+    mashaUnlocked = true;
+    hidePwdGate();
+    _activateTab('masha');
+  } else if (hash === stored) {
+    mashaUnlocked = true;
+    hidePwdGate();
+    _activateTab('masha');
+  } else {
+    document.getElementById('pwdInput').value = '';
+    errEl.textContent = 'Неверный пароль ❌';
+    // Shake animation
+    const card = document.getElementById('pwdCard');
+    card.style.animation = 'none';
+    card.offsetHeight; // reflow
+    card.style.animation = 'shake 0.35s ease';
+  }
+}
+
+// Add shake keyframes dynamically
+const style = document.createElement('style');
+style.textContent = `@keyframes shake {
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)}
+  60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }`;
+document.head.appendChild(style);
+
+// ══════════════════════════════════════════════
+//  FORMATTING
+// ══════════════════════════════════════════════
+const rub = n =>
+  new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n) + ' ₽';
+
+const dateRu = iso =>
+  new Date(iso + 'T00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+
+function daysTo(isoDate) {
+  const d = new Date(isoDate + 'T00:00');
+  const n = new Date(); n.setHours(0, 0, 0, 0);
+  return Math.ceil((d - n) / 864e5);
+}
+
+const colorOf = t => ({ debt:'c-red', savings:'c-green', investment:'c-blue', goal:'c-purple' }[t] || '');
+
+// ══════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════
+function render() {
+  document.getElementById('hDate').textContent =
+    new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+
+  if (activeTab === 'shared') renderSharedHero();
+  else renderMashaHero();
+
+  renderAccounts();
+  renderTransactions();
+}
+
+function renderSharedHero() {
+  const credit = acc('credit');
+  const bcn    = acc('bcn');
+
+  const paid = Math.max(0, CREDIT_START - credit.balance);
+  const pct  = Math.min(100, (paid / CREDIT_START) * 100);
+  const dl   = daysTo(CREDIT_DL);
+  const creditPill = credit.balance === 0
+    ? '🎉 Закрыто!' : dl > 0
+    ? `⏱ ${dl} дн. до 31 июля` : dl === 0
+    ? '🎉 Сегодня дедлайн!' : '📅 Срок прошёл';
+  const creditSub = paid > 0
+    ? `Погашено ${rub(paid)} из ${rub(CREDIT_START)}`
+    : `Начальный долг: ${rub(CREDIT_START)}`;
+
+  const bcnPct = Math.min(100, (bcn.balance / BCN_GOAL) * 100);
+  let bcnPill;
+  if (bcn.balance >= BCN_GOAL)    bcnPill = '🎉 Цель достигнута!';
+  else if (bcn.balance >= BCN_M1) bcnPill = `✅ Авг. ок · ещё ${rub(BCN_GOAL - bcn.balance)}`;
+  else { const d = daysTo(BCN_DL_AUG); bcnPill = `До авг.: ещё ${rub(BCN_M1 - bcn.balance)} · ${d} дн.`; }
+
+  const assets = D.accounts.filter(a => a.type !== 'debt').reduce((s, a) => s + a.balance, 0);
+  const nw     = assets - credit.balance;
+
+  document.getElementById('heroSection').innerHTML = `
+    <div class="hero-stack">
+      <div class="hero-card credit">
+        <div class="hero-tag">💳 Кредитка</div>
+        <div class="hero-amount">${rub(credit.balance)}</div>
+        <div class="hero-sub">${creditSub}</div>
+        <div class="prog-track"><div class="prog-fill" style="width:${pct}%"></div></div>
+        <div class="prog-labels"><span>Остаток долга</span><span>${Math.round(pct)}%</span><span>31 июля ✓</span></div>
+        <div class="pill">${creditPill}</div>
+      </div>
+      <div class="hero-row">
+        <div class="hero-card bcn">
+          <div class="hero-tag">✈️ Барселона</div>
+          <div class="hero-amount">${rub(bcn.balance)}</div>
+          <div class="hero-sub">цель 250 000 ₽</div>
+          <div class="prog-track">
+            <div class="prog-fill" style="width:${bcnPct}%"></div>
+            <div class="prog-dot" style="left:52%"></div>
+          </div>
+          <div class="prog-labels"><span>0</span><span>▲ 130к</span><span>250к</span></div>
+          <div class="pill">${bcnPill}</div>
+        </div>
+        <div class="hero-card networth">
+          <div class="hero-tag">📊 Нетто</div>
+          <div class="hero-amount">${(nw >= 0 ? '+' : '−') + rub(Math.abs(nw))}</div>
+          <div class="hero-sub">активы ${rub(assets)}</div>
+          <div class="pill">долг ${rub(credit.balance)}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderMashaHero() {
+  const assets = D.accounts.filter(a => a.type !== 'debt').reduce((s, a) => s + a.balance, 0);
+  const debts  = D.accounts.filter(a => a.type === 'debt').reduce((s, a) => s + a.balance, 0);
+  const nw     = assets - debts;
+  const txCount = D.txs.length;
+
+  document.getElementById('heroSection').innerHTML = `
+    <div class="hero-stack">
+      <div class="hero-card masha-main">
+        <div class="hero-tag">💜 Личные финансы</div>
+        <div class="hero-amount">${(nw >= 0 ? '+' : '−') + rub(Math.abs(nw))}</div>
+        <div class="hero-sub">активы ${rub(assets)}${debts > 0 ? ` · долги ${rub(debts)}` : ''}</div>
+        <div class="pill">
+          ${D.accounts.length} ${D.accounts.length === 1 ? 'счёт' : D.accounts.length < 5 ? 'счёта' : 'счетов'} ·
+          ${txCount} ${txCount === 1 ? 'операция' : txCount < 5 ? 'операции' : 'операций'}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderAccounts() {
+  document.getElementById('accsGrid').innerHTML = D.accounts.map(a => `
+    <div class="acc-card" onclick="openFor('${a.id}')">
+      <span class="acc-icon">${a.icon}</span>
+      <div class="acc-name">${a.name}</div>
+      <div class="acc-balance ${colorOf(a.type)}">
+        ${a.type === 'debt' ? '−' : ''}${rub(a.balance)}
+      </div>
+      ${a.note ? `<div class="acc-note">${a.note}</div>` : ''}
+    </div>`).join('');
+}
+
+function renderTransactions() {
+  const wrap = document.getElementById('txWrap');
+  if (!D.txs.length) {
+    wrap.innerHTML = '<div class="tx-empty"><span>📭</span>Операций пока нет</div>';
+    return;
+  }
+  const sorted = [...D.txs].sort((a, b) => b.date.localeCompare(a.date));
+  wrap.innerHTML = sorted.map(tx => {
+    const a    = acc(tx.accountId);
+    const isIn = tx.amount > 0;
+    const cls  = isIn ? 'in' : 'out';
+    return `
+      <div class="tx-item">
+        <div class="tx-icon ${cls}">${a?.icon ?? '💫'}</div>
+        <div class="tx-body">
+          <div class="tx-comment">${tx.comment || a?.name || 'Операция'}</div>
+          <div class="tx-meta">${a?.name ?? ''} · ${dateRu(tx.date)}</div>
+        </div>
+        <div class="tx-amt ${cls}">${isIn ? '+' : '−'}${rub(Math.abs(tx.amount))}</div>
+        <button class="tx-del" onclick="delTx('${tx.id}')" title="Удалить">✕</button>
+      </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+//  MODAL
+// ══════════════════════════════════════════════
+function openModal(preId) {
+  selAccId = preId || null;
+  selSign  = 1;
+  document.getElementById('amtInput').value = '';
+  document.getElementById('cmtInput').value = '';
+  document.getElementById('dtInput').value  = new Date().toISOString().slice(0, 10);
+  document.getElementById('modalTitle').textContent =
+    activeTab === 'masha' ? '💜 Новая операция' : 'Новая операция';
+  refreshPicker();
+  refreshSign();
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(() => { if (selAccId) document.getElementById('amtInput').focus(); }, 340);
+}
+function openFor(id) { openModal(id); }
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+function overlayClick(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function pickAcc(id) { selAccId = id; refreshPicker(); refreshSign(); }
+function setSign(s)  { selSign  = s;  refreshSign(); }
+
+function refreshPicker() {
+  const isMasha = activeTab === 'masha';
+  document.getElementById('accPicker').innerHTML = D.accounts.map(a => `
+    <button class="acc-pick-btn${selAccId === a.id ? (isMasha ? ' selected masha-sel' : ' selected') : ''}"
+            onclick="pickAcc('${a.id}')">
+      <span class="acc-pick-icon">${a.icon}</span>
+      <span class="acc-pick-name">${a.name}</span>
+      <span class="acc-pick-bal ${colorOf(a.type)}">
+        ${a.type === 'debt' ? '−' : ''}${rub(a.balance)}
+      </span>
+    </button>`).join('');
+}
+
+function refreshSign() {
+  document.getElementById('btnPlus').className  = 'sign-btn' + (selSign ===  1 ? ' on-plus'  : '');
+  document.getElementById('btnMinus').className = 'sign-btn' + (selSign === -1 ? ' on-minus' : '');
+  const hint = document.getElementById('signHint');
+  if (!selAccId) { hint.textContent = ''; return; }
+  const a = acc(selAccId);
+  hint.textContent = a.type === 'debt'
+    ? selSign === 1 ? '✅ Оплата — долг уменьшится'   : '⬆️ Трата — долг вырастет'
+    : selSign === 1 ? '✅ Пополнение счёта'             : '⬇️ Списание / трата';
+}
+
+// ══════════════════════════════════════════════
+//  TRANSACTIONS
+// ══════════════════════════════════════════════
+function submit() {
+  if (!selAccId) { alert('Выбери счёт'); return; }
+  const raw = parseFloat(document.getElementById('amtInput').value);
+  if (!raw || raw <= 0) { alert('Введи сумму'); return; }
+
+  const amount  = raw * selSign;
+  const comment = document.getElementById('cmtInput').value.trim();
+  const date    = document.getElementById('dtInput').value;
+  const a       = acc(selAccId);
+
+  if (a.type === 'debt') {
+    a.balance = Math.max(0, a.balance - amount);
+  } else {
+    a.balance = Math.max(0, a.balance + amount);
+  }
+
+  D.txs.push({ id: String(Date.now()), date, amount, accountId: selAccId, comment });
+  persist();
+  render();
+  closeModal();
+}
+
+function delTx(id) {
+  if (!confirm('Удалить операцию? Баланс счёта вернётся к предыдущему значению.')) return;
+  const tx = D.txs.find(t => t.id === id);
+  if (!tx) return;
+  const a = acc(tx.accountId);
+  if (a) {
+    if (a.type === 'debt') a.balance = Math.max(0, a.balance + tx.amount);
+    else a.balance = Math.max(0, a.balance - tx.amount);
+  }
+  D.txs = D.txs.filter(t => t.id !== id);
+  persist();
+  render();
+}
+
+// ══════════════════════════════════════════════
+//  EXPORT / IMPORT
+// ══════════════════════════════════════════════
+function exportData() {
+  const filename = activeTab === 'masha'
+    ? `finances_masha_${new Date().toISOString().slice(0,10)}.json`
+    : `finances_shared_${new Date().toISOString().slice(0,10)}.json`;
+  const json = JSON.stringify(D, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData() { document.getElementById('importFile').click(); }
+
+function importFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      if (!parsed.accounts) throw new Error();
+      if (activeTab === 'shared') D_shared = parsed;
+      else D_masha = parsed;
+      D = activeTab === 'shared' ? D_shared : D_masha;
+      persist();
+      render();
+      alert('✅ Данные загружены!');
+    } catch { alert('❌ Файл не распознан. Нужен JSON из экспорта.'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+loadShared();
+loadMashaLocal();
+D = D_shared;
+render();
+setInterval(render, 60000);
+</script>
+</body>
+</html>

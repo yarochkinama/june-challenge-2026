@@ -56,6 +56,12 @@ model TaskCompletion {
   @@unique([taskId, date])
 }
 
+model FinanceState {
+  id        String   @id  // "shared" | "masha"
+  data      String   // JSON blob of the entire finance state
+  updatedAt DateTime @updatedAt
+}
+
 model WeightEntry {
   id            String   @id @default(cuid())
   userProfileId String
