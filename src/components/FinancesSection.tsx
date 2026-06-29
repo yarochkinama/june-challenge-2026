@@ -323,35 +323,16 @@ export default function FinancesSection() {
         </div>
       </div>
 
-      {/* ── HERO row: Barcelona + Нетто онлайн ── */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Barcelona */}
-        <div style={{background:'linear-gradient(145deg,#5856D6 0%,#3B39B0 100%)',borderRadius:22,padding:'18px 18px',color:'white',position:'relative',overflow:'hidden'}}>
-          <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
-          <div style={{position:'relative'}}>
-            <p style={{fontSize:10,fontWeight:600,letterSpacing:'0.5px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>✈️ Барселона</p>
-            <p style={{fontSize:22,fontWeight:800,letterSpacing:'-0.5px',lineHeight:1.1,marginBottom:2}}>{rub(bcn?.balance??0)}</p>
-            <p style={{fontSize:12,opacity:0.68,marginBottom:10}}>цель 250 000 ₽</p>
-            <div style={{background:'rgba(255,255,255,0.2)',borderRadius:100,height:5,marginBottom:4,position:'relative'}}>
-              <div style={{height:'100%',borderRadius:100,background:'rgba(255,255,255,0.85)',width:`${bcnPct}%`,transition:'width 0.5s ease'}}/>
-              <div style={{position:'absolute',top:'50%',left:'52%',transform:'translate(-50%,-50%)',width:11,height:11,borderRadius:'50%',border:'2px solid rgba(255,255,255,0.75)'}}/>
-            </div>
-            <div style={{display:'flex',justifyContent:'space-between',fontSize:10,opacity:0.62,marginBottom:8}}>
-              <span>0</span><span>▲130к</span><span>250к</span>
-            </div>
-            <span style={{display:'inline-flex',alignItems:'center',background:'rgba(255,255,255,0.16)',borderRadius:100,padding:'3px 10px',fontSize:11,fontWeight:600}}>{bcnPill}</span>
-          </div>
-        </div>
-
-        {/* Нетто онлайн */}
-        <div style={{background:'linear-gradient(145deg,#1C4B82 0%,#0F2F52 100%)',borderRadius:22,padding:'18px 18px',color:'white',position:'relative',overflow:'hidden'}}>
-          <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
-          <div style={{position:'relative'}}>
+      {/* ── HERO row: Нетто онлайн (full width) ── */}
+      <div style={{background:'linear-gradient(145deg,#1C4B82 0%,#0F2F52 100%)',borderRadius:22,padding:'18px 22px',color:'white',position:'relative',overflow:'hidden'}}>
+        <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
+        <div style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div>
             <p style={{fontSize:10,fontWeight:600,letterSpacing:'0.5px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>💻 Нетто онлайн</p>
-            <p style={{fontSize:22,fontWeight:800,letterSpacing:'-0.5px',lineHeight:1.1,marginBottom:2}}>{(onlineNW>=0?'+':'−')+rub(Math.abs(onlineNW))}</p>
-            <p style={{fontSize:12,opacity:0.68,marginBottom:10}}>активы {rub(onlineAssets)}</p>
-            <span style={{display:'inline-flex',alignItems:'center',background:'rgba(255,255,255,0.16)',borderRadius:100,padding:'3px 10px',fontSize:11,fontWeight:600}}>долг {rub(onlineDebt)}</span>
+            <p style={{fontSize:26,fontWeight:800,letterSpacing:'-0.5px',lineHeight:1.1,marginBottom:2}}>{(onlineNW>=0?'+':'−')+rub(Math.abs(onlineNW))}</p>
+            <p style={{fontSize:12,opacity:0.68}}>активы {rub(onlineAssets)}</p>
           </div>
+          <span style={{display:'inline-flex',alignItems:'center',background:'rgba(255,255,255,0.16)',borderRadius:100,padding:'6px 14px',fontSize:13,fontWeight:600}}>долг {rub(onlineDebt)}</span>
         </div>
       </div>
 
