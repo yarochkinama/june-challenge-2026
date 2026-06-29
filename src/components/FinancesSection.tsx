@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 type Currency = 'RUB' | 'USD' | 'EUR' | 'MDL'
 interface Account {
   id: string; name: string; icon: string
-  type: 'debt' | 'savings' | 'investment' | 'goal'
+  type: 'debt' | 'savings' | 'investment' | 'goal' | 'checking'
   medium: 'online' | 'cash'
   currency: Currency
   balance: number; note: string
@@ -53,7 +53,7 @@ function daysTo(iso: string) {
   n.setHours(0,0,0,0)
   return Math.ceil((d.getTime()-n.getTime())/864e5)
 }
-const colorOf = (t: string) => ({debt:'#FF3B30',savings:'#30B95B',investment:'#007AFF',goal:'#BF5AF2'}[t]||'#1C1C1E')
+const colorOf = (t: string) => ({debt:'#FF3B30',savings:'#30B95B',investment:'#007AFF',goal:'#BF5AF2',checking:'#FF9500'}[t]||'#1C1C1E')
 
 const CURR_SYMBOLS: Record<Currency, string> = { RUB:'₽', USD:'$', EUR:'€', MDL:'L' }
 const RATES_KEY = 'fx_rates_v1'
@@ -643,10 +643,10 @@ export default function FinancesSection() {
             <div className="mb-4">
               <p className="text-xs font-medium text-slate-400 mb-2">Тип</p>
               <div className="grid grid-cols-2 gap-2">
-                {(['savings','investment','goal','debt'] as Account['type'][]).map(t=>(
+                {(['checking','savings','investment','goal','debt'] as Account['type'][]).map(t=>(
                   <button key={t} onClick={()=>setAddAccType(t)}
                     className={`py-2.5 px-3 rounded-2xl border-2 text-sm font-medium transition-all ${addAccType===t?'border-purple-400 bg-purple-50 text-purple-700':'border-slate-100 text-slate-500'}`}>
-                    {t==='savings'?'💰 Накопления':t==='investment'?'📈 Инвестиции':t==='goal'?'🎯 Цель':'💳 Долг'}
+                    {t==='checking'?'🏦 Операционный':t==='savings'?'💰 Накопления':t==='investment'?'📈 Инвестиции':t==='goal'?'🎯 Цель':'💳 Долг'}
                   </button>
                 ))}
               </div>
