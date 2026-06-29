@@ -409,7 +409,7 @@ export default function FinancesSection() {
       </div>
 
       {/* ── HERO row: credit + netto online + netto all ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid gap-3" style={{gridTemplateColumns:'1.8fr 1fr 1fr'}}>
         {/* Credit card */}
         <div style={{background:'linear-gradient(145deg,#FF3B30 0%,#C0392B 100%)',borderRadius:22,padding:'28px 24px',color:'white',position:'relative',overflow:'hidden'}}>
           <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
