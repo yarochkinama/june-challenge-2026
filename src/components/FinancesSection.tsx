@@ -341,6 +341,11 @@ export default function FinancesSection() {
   const cashAssets   = cashAccounts.reduce((s,a) => s + toRub(a.balance, a.currency ?? 'RUB', rates), 0)
   const totalNW      = onlineNW + cashAssets
 
+  const opOnline  = onlineAccounts.filter(a => a.type === 'checking').reduce((s,a) => s + toRub(a.balance, a.currency ?? 'RUB', rates), 0)
+  const opCash    = cashAccounts.filter(a => a.type === 'checking').reduce((s,a) => s + toRub(a.balance, a.currency ?? 'RUB', rates), 0)
+  const savOnline = onlineAccounts.filter(a => a.type !== 'checking' && a.type !== 'debt').reduce((s,a) => s + toRub(a.balance, a.currency ?? 'RUB', rates), 0)
+  const savCash   = cashAccounts.filter(a => a.type !== 'checking' && a.type !== 'debt').reduce((s,a) => s + toRub(a.balance, a.currency ?? 'RUB', rates), 0)
+
   const ratesAge = rates ? Math.round((Date.now() - rates.fetchedAt) / 60000) : null
 
   const sortedTxs = [...data.txs].sort((a,b)=>b.date.localeCompare(a.date))
@@ -436,6 +441,21 @@ export default function FinancesSection() {
       </div>
 
       {/* ── Accounts: Online | Cash side by side ── */}
+      {/* ── 4 summary tiles ── */}
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { label:'🏦 Операционные · онлайн', value: opOnline,  bg:'#EFF6FF', color:'#1D4ED8' },
+          { label:'🏦 Операционные · нал',    value: opCash,    bg:'#F0FDF4', color:'#15803D' },
+          { label:'💰 Накопления · онлайн',   value: savOnline, bg:'#F5F3FF', color:'#6D28D9' },
+          { label:'💰 Накопления · нал',      value: savCash,   bg:'#FFF7ED', color:'#C2410C' },
+        ].map(({ label, value, bg, color }) => (
+          <div key={label} className="rounded-2xl px-4 py-3" style={{background: bg}}>
+            <p className="text-xs font-medium mb-1 leading-tight" style={{color, opacity:0.75}}>{label}</p>
+            <p className="text-base font-bold" style={{color}}>{rub(value)}</p>
+          </div>
+        ))}
+      </div>
+
       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mt-1 px-0.5">Счета</p>
       <div className="grid grid-cols-2 gap-3 items-start">
 
