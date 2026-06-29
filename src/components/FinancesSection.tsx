@@ -3,12 +3,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 // ── Types ──────────────────────────────────────────────────
+type Currency = 'RUB' | 'USD' | 'EUR' | 'MDL'
 interface Account {
   id: string; name: string; icon: string
   type: 'debt' | 'savings' | 'investment' | 'goal'
   medium: 'online' | 'cash'
+  currency: Currency
   balance: number; note: string
 }
+interface Rates { usd: number; eur: number; mdl: number; fetchedAt: number }
 interface Tx {
   id: string; date: string; amount: number
   accountId: string; comment: string
@@ -24,11 +27,11 @@ const BCN_DL_AUG   = '2026-08-10'
 
 const DEFAULTS: FinanceData = {
   accounts: [
-    { id:'credit', name:'Кредитка',    icon:'💳', type:'debt',       medium:'online', balance:439000, note:'Закрыть к 31 июля' },
-    { id:'mag',    name:'Вклад · Маг', icon:'🎓', type:'savings',    medium:'online', balance:190000, note:'Магистратура' },
-    { id:'invest', name:'Инвестиции',  icon:'📈', type:'investment', medium:'online', balance:80000,  note:'' },
-    { id:'vklad',  name:'Вклад 3 мес', icon:'⏳', type:'savings',    medium:'online', balance:50000,  note:'До конца июля' },
-    { id:'bcn',    name:'Барселона',   icon:'✈️', type:'goal',       medium:'online', balance:40000,  note:'/ 250 000 ₽' },
+    { id:'credit', name:'Кредитка',    icon:'💳', type:'debt',       medium:'online', currency:'RUB', balance:439000, note:'Закрыть к 31 июля' },
+    { id:'mag',    name:'Вклад · Маг', icon:'🎓', type:'savings',    medium:'online', currency:'RUB', balance:190000, note:'Магистратура' },
+    { id:'invest', name:'Инвестиции',  icon:'📈', type:'investment', medium:'online', currency:'RUB', balance:80000,  note:'' },
+    { id:'vklad',  name:'Вклад 3 мес', icon:'⏳', type:'savings',    medium:'online', currency:'RUB', balance:50000,  note:'До конца июля' },
+    { id:'bcn',    name:'Барселона',   icon:'✈️', type:'goal',       medium:'online', currency:'RUB', balance:40000,  note:'/ 250 000 ₽' },
   ],
   txs: [],
 }
@@ -52,9 +55,52 @@ function daysTo(iso: string) {
 }
 const colorOf = (t: string) => ({debt:'#FF3B30',savings:'#30B95B',investment:'#007AFF',goal:'#BF5AF2'}[t]||'#1C1C1E')
 
-// Ensure all accounts have medium field (backwards compat)
+const CURR_SYMBOLS: Record<Currency, string> = { RUB:'₽', USD:'$', EUR:'€', MDL:'L' }
+const RATES_KEY = 'fx_rates_v1'
+const RATES_TTL = 60 * 60 * 1000 // 1 hour
+
+function fmtCurr(n: number, currency: Currency) {
+  const abs = Math.abs(n)
+  if (currency === 'RUB') return new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(abs) + ' ₽'
+  if (currency === 'MDL') return new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(abs) + ' L'
+  return new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(abs) + ' ' + CURR_SYMBOLS[currency]
+}
+
+// Ensure all accounts have required fields (backwards compat)
 function normalize(d: FinanceData): FinanceData {
-  return { ...d, accounts: d.accounts.map(a => ({ ...a, medium: (a.medium ?? 'online') as 'online' | 'cash' })) }
+  return {
+    ...d,
+    accounts: d.accounts.map(a => ({
+      ...a,
+      medium: (a.medium ?? 'online') as 'online' | 'cash',
+      currency: (a.currency ?? 'RUB') as Currency,
+    }))
+  }
+}
+
+async function fetchRates(): Promise<Rates | null> {
+  try {
+    const cached = localStorage.getItem(RATES_KEY)
+    if (cached) {
+      const r = JSON.parse(cached) as Rates
+      if (Date.now() - r.fetchedAt < RATES_TTL) return r
+    }
+    // fawazahmed0 currency API via jsDelivr CDN — free, no key
+    const res  = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/rub.json')
+    const json = await res.json()
+    const r: Rates = { usd: json.rub.usd, eur: json.rub.eur, mdl: json.rub.mdl, fetchedAt: Date.now() }
+    localStorage.setItem(RATES_KEY, JSON.stringify(r))
+    return r
+  } catch { return null }
+}
+
+// Convert account balance to RUB using rates (1 RUB = rates.usd USD etc.)
+function toRub(balance: number, currency: Currency, rates: Rates | null): number {
+  if (currency === 'RUB' || !rates) return balance
+  if (currency === 'USD') return balance / rates.usd
+  if (currency === 'EUR') return balance / rates.eur
+  if (currency === 'MDL') return balance / rates.mdl
+  return balance
 }
 
 // ══════════════════════════════════════════════════════════
@@ -69,6 +115,7 @@ export default function FinancesSection() {
   const [data,      setData]      = useState<FinanceData>(DEFAULTS)
   const [apiLoaded, setApiLoaded] = useState(false)
   const [sync,      setSync]      = useState<'ok'|'saving'|'err'>('ok')
+  const [rates,     setRates]     = useState<Rates | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout>|null>(null)
 
   // ── Transaction modal ──
@@ -80,12 +127,13 @@ export default function FinancesSection() {
   const [date,    setDate]    = useState('')
 
   // ── Add account modal ──
-  const [addAccModal,   setAddAccModal]   = useState(false)
-  const [addAccMedium,  setAddAccMedium]  = useState<'online'|'cash'>('online')
-  const [addAccName,    setAddAccName]    = useState('')
-  const [addAccIcon,    setAddAccIcon]    = useState('💰')
-  const [addAccType,    setAddAccType]    = useState<Account['type']>('savings')
-  const [addAccBalance, setAddAccBalance] = useState('')
+  const [addAccModal,    setAddAccModal]    = useState(false)
+  const [addAccMedium,   setAddAccMedium]   = useState<'online'|'cash'>('online')
+  const [addAccName,     setAddAccName]     = useState('')
+  const [addAccIcon,     setAddAccIcon]     = useState('💰')
+  const [addAccType,     setAddAccType]     = useState<Account['type']>('savings')
+  const [addAccCurrency, setAddAccCurrency] = useState<Currency>('RUB')
+  const [addAccBalance,  setAddAccBalance]  = useState('')
 
   // ── Edit account modal ──
   const [editAccId,   setEditAccId]   = useState<string|null>(null)
@@ -99,6 +147,11 @@ export default function FinancesSection() {
       const raw = localStorage.getItem(LOCAL_KEY)
       if (raw) setData(normalize(JSON.parse(raw)))
     } catch {}
+    // Load cached rates immediately if available
+    try {
+      const cached = localStorage.getItem(RATES_KEY)
+      if (cached) { const r = JSON.parse(cached) as Rates; setRates(r) }
+    } catch {}
   }, [])
 
   // ── API sync ──
@@ -106,13 +159,17 @@ export default function FinancesSection() {
     if (apiLoaded) return
     setSync('saving')
     try {
-      const res  = await fetch('/api/finances?id=masha')
+      const [res, freshRates] = await Promise.all([
+        fetch('/api/finances?id=masha'),
+        fetchRates(),
+      ])
       const json = await res.json()
       if (json.data) {
         const parsed = normalize(JSON.parse(json.data) as FinanceData)
         setData(parsed)
         localStorage.setItem(LOCAL_KEY, json.data)
       }
+      if (freshRates) setRates(freshRates)
       setApiLoaded(true); setSync('ok')
     } catch { setApiLoaded(true); setSync('err') }
   }, [apiLoaded])
@@ -197,7 +254,7 @@ export default function FinancesSection() {
   // ── Add account ──
   const openAddAcc = (medium: 'online' | 'cash') => {
     setAddAccMedium(medium); setAddAccName(''); setAddAccIcon('💰')
-    setAddAccType('savings'); setAddAccBalance(''); setAddAccModal(true)
+    setAddAccType('savings'); setAddAccCurrency('RUB'); setAddAccBalance(''); setAddAccModal(true)
   }
   const submitAddAcc = () => {
     if (!addAccName.trim()) return
@@ -209,6 +266,7 @@ export default function FinancesSection() {
         icon: addAccIcon.trim() || '💰',
         type: addAccType,
         medium: addAccMedium,
+        currency: addAccCurrency,
         balance: bal,
         note: '',
       })
@@ -252,12 +310,14 @@ export default function FinancesSection() {
   const onlineAccounts = data.accounts.filter(a => (a.medium ?? 'online') === 'online')
   const cashAccounts   = data.accounts.filter(a => a.medium === 'cash')
 
-  const onlineAssets = onlineAccounts.filter(a => a.type !== 'debt').reduce((s,a) => s+a.balance, 0)
-  const onlineDebt   = onlineAccounts.filter(a => a.type === 'debt').reduce((s,a) => s+a.balance, 0)
+  const onlineAssets = onlineAccounts.filter(a => a.type !== 'debt').reduce((s,a) => s + toRub(a.balance, a.currency ?? 'RUB', rates), 0)
+  const onlineDebt   = onlineAccounts.filter(a => a.type === 'debt').reduce((s,a) => s + toRub(a.balance, a.currency ?? 'RUB', rates), 0)
   const onlineNW     = onlineAssets - onlineDebt
 
-  const cashAssets   = cashAccounts.reduce((s,a) => s+a.balance, 0)
+  const cashAssets   = cashAccounts.reduce((s,a) => s + toRub(a.balance, a.currency ?? 'RUB', rates), 0)
   const totalNW      = onlineNW + cashAssets
+
+  const ratesAge = rates ? Math.round((Date.now() - rates.fetchedAt) / 60000) : null
 
   const sortedTxs = [...data.txs].sort((a,b)=>b.date.localeCompare(a.date))
 
@@ -341,8 +401,9 @@ export default function FinancesSection() {
         <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
         <div style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div>
-            <p style={{fontSize:10,fontWeight:600,letterSpacing:'0.5px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>📊 Нетто всё</p>
+            <p style={{fontSize:10,fontWeight:600,letterSpacing:'0.5px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>📊 Нетто всё · в ₽</p>
             <p style={{fontSize:26,fontWeight:800,letterSpacing:'-0.5px',lineHeight:1.1}}>{(totalNW>=0?'+':'−')+rub(Math.abs(totalNW))}</p>
+            {ratesAge !== null && <p style={{fontSize:10,opacity:0.4,marginTop:4}}>курс {ratesAge < 1 ? 'только что' : `${ratesAge} мин. назад`}</p>}
           </div>
           <div style={{textAlign:'right'}}>
             <p style={{fontSize:11,opacity:0.55,marginBottom:3}}>💻 онлайн {(onlineNW>=0?'+':'−')+rub(Math.abs(onlineNW))}</p>
@@ -358,23 +419,31 @@ export default function FinancesSection() {
         {/* Online column */}
         <div className="space-y-2">
           <p className="text-xs font-semibold text-blue-500 px-0.5">💻 Онлайн</p>
-          {onlineAccounts.map(acc => (
-            <div key={acc.id} className="relative">
-              <button onClick={()=>openModal(acc.id)}
-                className="w-full bg-white rounded-2xl p-4 text-left shadow-sm border border-slate-100 hover:shadow-md active:scale-95 transition-all">
-                <span className="text-2xl block mb-2">{acc.icon}</span>
-                <p className="text-xs text-slate-400 mb-0.5 pr-6 leading-tight">{acc.name}</p>
-                <p className="text-base font-bold" style={{color:colorOf(acc.type)}}>
-                  {acc.type==='debt'?'−':''}{rub(acc.balance)}
-                </p>
-                {acc.note&&<p className="text-xs text-slate-300 mt-0.5 truncate">{acc.note}</p>}
-              </button>
-              <button onClick={e=>{e.stopPropagation();openEditAcc(acc)}}
-                className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-lg text-slate-300 hover:text-purple-400 hover:bg-purple-50 transition-all text-xs">
-                ✏️
-              </button>
-            </div>
-          ))}
+          {onlineAccounts.map(acc => {
+            const cur = acc.currency ?? 'RUB'
+            const rubVal = cur !== 'RUB' ? toRub(acc.balance, cur, rates) : null
+            return (
+              <div key={acc.id} className="relative">
+                <button onClick={()=>openModal(acc.id)}
+                  className="w-full bg-white rounded-2xl p-4 text-left shadow-sm border border-slate-100 hover:shadow-md active:scale-95 transition-all">
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="text-2xl">{acc.icon}</span>
+                    {cur !== 'RUB' && <span className="text-xs font-bold px-1.5 py-0.5 rounded-lg bg-slate-100 text-slate-500">{cur}</span>}
+                  </div>
+                  <p className="text-xs text-slate-400 mb-0.5 pr-6 leading-tight">{acc.name}</p>
+                  <p className="text-base font-bold" style={{color:colorOf(acc.type)}}>
+                    {acc.type==='debt'?'−':''}{fmtCurr(acc.balance, cur)}
+                  </p>
+                  {rubVal !== null && <p className="text-xs text-slate-400 mt-0.5">≈ {rub(rubVal)}</p>}
+                  {acc.note&&<p className="text-xs text-slate-300 mt-0.5 truncate">{acc.note}</p>}
+                </button>
+                <button onClick={e=>{e.stopPropagation();openEditAcc(acc)}}
+                  className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-lg text-slate-300 hover:text-purple-400 hover:bg-purple-50 transition-all text-xs">
+                  ✏️
+                </button>
+              </div>
+            )
+          })}
           <button onClick={()=>openAddAcc('online')}
             className="w-full py-3 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 text-sm font-medium hover:border-blue-300 hover:text-blue-400 transition-colors">
             + счёт
@@ -384,23 +453,31 @@ export default function FinancesSection() {
         {/* Cash column */}
         <div className="space-y-2">
           <p className="text-xs font-semibold text-emerald-600 px-0.5">💵 Наличка</p>
-          {cashAccounts.map(acc => (
-            <div key={acc.id} className="relative">
-              <button onClick={()=>openModal(acc.id)}
-                className="w-full bg-white rounded-2xl p-4 text-left shadow-sm border border-slate-100 hover:shadow-md active:scale-95 transition-all">
-                <span className="text-2xl block mb-2">{acc.icon}</span>
-                <p className="text-xs text-slate-400 mb-0.5 pr-6 leading-tight">{acc.name}</p>
-                <p className="text-base font-bold" style={{color:colorOf(acc.type)}}>
-                  {acc.type==='debt'?'−':''}{rub(acc.balance)}
-                </p>
-                {acc.note&&<p className="text-xs text-slate-300 mt-0.5 truncate">{acc.note}</p>}
-              </button>
-              <button onClick={e=>{e.stopPropagation();openEditAcc(acc)}}
-                className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-lg text-slate-300 hover:text-purple-400 hover:bg-purple-50 transition-all text-xs">
-                ✏️
-              </button>
-            </div>
-          ))}
+          {cashAccounts.map(acc => {
+            const cur = acc.currency ?? 'RUB'
+            const rubVal = cur !== 'RUB' ? toRub(acc.balance, cur, rates) : null
+            return (
+              <div key={acc.id} className="relative">
+                <button onClick={()=>openModal(acc.id)}
+                  className="w-full bg-white rounded-2xl p-4 text-left shadow-sm border border-slate-100 hover:shadow-md active:scale-95 transition-all">
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="text-2xl">{acc.icon}</span>
+                    {cur !== 'RUB' && <span className="text-xs font-bold px-1.5 py-0.5 rounded-lg bg-slate-100 text-slate-500">{cur}</span>}
+                  </div>
+                  <p className="text-xs text-slate-400 mb-0.5 pr-6 leading-tight">{acc.name}</p>
+                  <p className="text-base font-bold" style={{color:colorOf(acc.type)}}>
+                    {acc.type==='debt'?'−':''}{fmtCurr(acc.balance, cur)}
+                  </p>
+                  {rubVal !== null && <p className="text-xs text-slate-400 mt-0.5">≈ {rub(rubVal)}</p>}
+                  {acc.note&&<p className="text-xs text-slate-300 mt-0.5 truncate">{acc.note}</p>}
+                </button>
+                <button onClick={e=>{e.stopPropagation();openEditAcc(acc)}}
+                  className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-lg text-slate-300 hover:text-purple-400 hover:bg-purple-50 transition-all text-xs">
+                  ✏️
+                </button>
+              </div>
+            )
+          })}
           {cashAccounts.length === 0 && (
             <div className="bg-slate-50 rounded-2xl p-4 text-center text-slate-300 text-xs border border-dashed border-slate-200">
               Нет счетов
@@ -575,9 +652,27 @@ export default function FinancesSection() {
               </div>
             </div>
 
+            {/* Currency */}
+            <div className="mb-4">
+              <p className="text-xs font-medium text-slate-400 mb-2">Валюта</p>
+              <div className="grid grid-cols-4 gap-2">
+                {(['RUB','USD','EUR','MDL'] as Currency[]).map(c=>(
+                  <button key={c} onClick={()=>setAddAccCurrency(c)}
+                    className={`py-2.5 rounded-2xl border-2 text-sm font-bold transition-all ${addAccCurrency===c?'border-purple-400 bg-purple-50 text-purple-700':'border-slate-100 text-slate-500'}`}>
+                    {CURR_SYMBOLS[c]}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-4 gap-2 mt-1">
+                {(['RUB','USD','EUR','MDL'] as Currency[]).map(c=>(
+                  <p key={c} className="text-center text-xs text-slate-400">{c}</p>
+                ))}
+              </div>
+            </div>
+
             {/* Initial balance */}
             <div className="mb-5">
-              <p className="text-xs font-medium text-slate-400 mb-2">Начальный баланс</p>
+              <p className="text-xs font-medium text-slate-400 mb-2">Начальный баланс ({addAccCurrency})</p>
               <input type="number" value={addAccBalance} onChange={e=>setAddAccBalance(e.target.value)}
                 placeholder="0" inputMode="decimal"
                 className="w-full border-2 border-slate-100 rounded-2xl px-4 py-3.5 text-base focus:outline-none focus:border-purple-400 transition-colors"/>
