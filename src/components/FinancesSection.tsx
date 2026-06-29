@@ -395,54 +395,52 @@ export default function FinancesSection() {
         </div>
       </div>
 
-      {/* ── HERO: credit card ── */}
-      <div style={{background:'linear-gradient(145deg,#FF3B30 0%,#C0392B 100%)',borderRadius:22,padding:'20px 22px',color:'white',position:'relative',overflow:'hidden'}}>
-        <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
-        <div style={{position:'relative'}}>
-          <p style={{fontSize:11,fontWeight:600,letterSpacing:'0.6px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>💳 Кредитка</p>
-          <p style={{fontSize:30,fontWeight:800,letterSpacing:'-0.8px',lineHeight:1.1,marginBottom:2}}>{rub(credit?.balance??0)}</p>
-          <p style={{fontSize:13,opacity:0.68,marginBottom:12}}>{creditSub}</p>
-          <div style={{background:'rgba(255,255,255,0.2)',borderRadius:100,height:6,marginBottom:5,position:'relative'}}>
-            <div style={{height:'100%',borderRadius:100,background:'rgba(255,255,255,0.85)',width:`${pct}%`,transition:'width 0.5s ease'}}/>
-          </div>
-          <div style={{display:'flex',justifyContent:'space-between',fontSize:11,opacity:0.62,marginBottom:10}}>
-            <span>Остаток долга</span><span>{Math.round(pct)}%</span><span>31 июля ✓</span>
-          </div>
-          <span style={{display:'inline-flex',alignItems:'center',background:'rgba(255,255,255,0.16)',borderRadius:100,padding:'4px 12px',fontSize:12,fontWeight:600}}>{creditPill}</span>
-        </div>
-      </div>
-
-      {/* ── HERO row: Нетто онлайн (full width) ── */}
-      <div style={{background:'linear-gradient(145deg,#1C4B82 0%,#0F2F52 100%)',borderRadius:22,padding:'18px 22px',color:'white',position:'relative',overflow:'hidden'}}>
-        <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
-        <div style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <div>
-            <p style={{fontSize:10,fontWeight:600,letterSpacing:'0.5px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>💻 Нетто онлайн</p>
-            <p style={{fontSize:26,fontWeight:800,letterSpacing:'-0.5px',lineHeight:1.1,marginBottom:2}}>{(onlineNW>=0?'+':'−')+rub(Math.abs(onlineNW))}</p>
-            <p style={{fontSize:12,opacity:0.68}}>активы {rub(onlineAssets)}</p>
+      {/* ── HERO row: credit + netto online + netto all ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {/* Credit card */}
+        <div style={{background:'linear-gradient(145deg,#FF3B30 0%,#C0392B 100%)',borderRadius:22,padding:'20px 22px',color:'white',position:'relative',overflow:'hidden'}}>
+          <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
+          <div style={{position:'relative'}}>
+            <p style={{fontSize:11,fontWeight:600,letterSpacing:'0.6px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>💳 Кредитка</p>
+            <p style={{fontSize:30,fontWeight:800,letterSpacing:'-0.8px',lineHeight:1.1,marginBottom:2}}>{rub(credit?.balance??0)}</p>
+            <p style={{fontSize:13,opacity:0.68,marginBottom:12}}>{creditSub}</p>
+            <div style={{background:'rgba(255,255,255,0.2)',borderRadius:100,height:6,marginBottom:5}}>
+              <div style={{height:'100%',borderRadius:100,background:'rgba(255,255,255,0.85)',width:`${pct}%`,transition:'width 0.5s ease'}}/>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:11,opacity:0.62,marginBottom:10}}>
+              <span>Остаток долга</span><span>{Math.round(pct)}%</span><span>31 июля ✓</span>
+            </div>
+            <span style={{display:'inline-flex',alignItems:'center',background:'rgba(255,255,255,0.16)',borderRadius:100,padding:'4px 12px',fontSize:12,fontWeight:600}}>{creditPill}</span>
           </div>
         </div>
-      </div>
 
-      {/* ── Нетто всё ── */}
-      <div style={{background:'linear-gradient(145deg,#2C2C2E 0%,#1C1C1E 100%)',borderRadius:22,padding:'16px 22px',color:'white',position:'relative',overflow:'hidden'}}>
-        <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
-        <div style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <div>
-            <p style={{fontSize:10,fontWeight:600,letterSpacing:'0.5px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>📊 Нетто всё · в ₽</p>
-            <p style={{fontSize:26,fontWeight:800,letterSpacing:'-0.5px',lineHeight:1.1}}>{(totalNW>=0?'+':'−')+rub(Math.abs(totalNW))}</p>
-            {ratesAge !== null && <p style={{fontSize:10,opacity:0.4,marginTop:4}}>курс {ratesAge < 1 ? 'только что' : `${ratesAge} мин. назад`}</p>}
+        {/* Нетто онлайн */}
+        <div style={{background:'linear-gradient(145deg,#1C4B82 0%,#0F2F52 100%)',borderRadius:22,padding:'20px 22px',color:'white',position:'relative',overflow:'hidden'}}>
+          <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
+          <div style={{position:'relative'}}>
+            <p style={{fontSize:11,fontWeight:600,letterSpacing:'0.5px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>💻 Нетто онлайн</p>
+            <p style={{fontSize:30,fontWeight:800,letterSpacing:'-0.8px',lineHeight:1.1,marginBottom:2}}>{(onlineNW>=0?'+':'−')+rub(Math.abs(onlineNW))}</p>
+            <p style={{fontSize:13,opacity:0.68}}>активы {rub(onlineAssets)}</p>
           </div>
-          <div style={{textAlign:'right'}}>
-            <p style={{fontSize:11,opacity:0.55,marginBottom:3}}>💻 онлайн {(onlineNW>=0?'+':'−')+rub(Math.abs(onlineNW))}</p>
-            <p style={{fontSize:11,opacity:0.55}}>💵 наличка +{rub(cashAssets)}</p>
+        </div>
+
+        {/* Нетто всё */}
+        <div style={{background:'linear-gradient(145deg,#2C2C2E 0%,#1C1C1E 100%)',borderRadius:22,padding:'20px 22px',color:'white',position:'relative',overflow:'hidden'}}>
+          <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
+          <div style={{position:'relative'}}>
+            <p style={{fontSize:11,fontWeight:600,letterSpacing:'0.5px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>📊 Нетто всё · в ₽</p>
+            <p style={{fontSize:30,fontWeight:800,letterSpacing:'-0.8px',lineHeight:1.1,marginBottom:2}}>{(totalNW>=0?'+':'−')+rub(Math.abs(totalNW))}</p>
+            <p style={{fontSize:13,opacity:0.68,marginBottom:0}}>
+              💻 {(onlineNW>=0?'+':'−')+rub(Math.abs(onlineNW))} · 💵 +{rub(cashAssets)}
+            </p>
+            {ratesAge !== null && <p style={{fontSize:10,opacity:0.4,marginTop:6}}>курс {ratesAge < 1 ? 'только что' : `${ratesAge} мин. назад`}</p>}
           </div>
         </div>
       </div>
 
       {/* ── Accounts: Online | Cash side by side ── */}
       {/* ── 4 summary tiles ── */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {[
           { label:'🏦 Операционные · онлайн', value: opOnline,  bg:'#EFF6FF', color:'#1D4ED8' },
           { label:'🏦 Операционные · нал',    value: opCash,    bg:'#F0FDF4', color:'#15803D' },

@@ -209,7 +209,7 @@ export default function HomePage() {
       </header>
 
       {/* Main content */}
-      <main className="max-w-lg mx-auto px-4 py-5 pb-20">
+      <main className={`mx-auto px-4 py-5 pb-20 ${activeSection === 'finances' ? 'max-w-5xl' : 'max-w-lg'}`}>
         {/* Finances section */}
         {activeSection === 'finances' && <FinancesSection />}
 
