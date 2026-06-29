@@ -411,7 +411,7 @@ export default function FinancesSection() {
       {/* ── HERO row: credit + netto online + netto all ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Credit card */}
-        <div style={{background:'linear-gradient(145deg,#FF3B30 0%,#C0392B 100%)',borderRadius:22,padding:'20px 22px',color:'white',position:'relative',overflow:'hidden'}}>
+        <div style={{background:'linear-gradient(145deg,#FF3B30 0%,#C0392B 100%)',borderRadius:22,padding:'28px 24px',color:'white',position:'relative',overflow:'hidden'}}>
           <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
           <div style={{position:'relative'}}>
             <p style={{fontSize:11,fontWeight:600,letterSpacing:'0.6px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>💳 Кредитка</p>
@@ -432,8 +432,8 @@ export default function FinancesSection() {
                   borderRadius:14, padding:'8px 10px', position:'relative',
                   border: m.done ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.3)',
                 }}>
-                  <p style={{fontSize:10,fontWeight:700,opacity: m.done ? 0.45 : 0.85,marginBottom:3,letterSpacing:'0.3px'}}>{m.label}</p>
-                  <p style={{fontSize:13,fontWeight:800,opacity: m.done ? 0.45 : 1,letterSpacing:'-0.3px'}}>
+                  <p style={{fontSize:9,fontWeight:700,opacity: m.done ? 0.45 : 0.85,marginBottom:2,letterSpacing:'0.3px'}}>{m.label}</p>
+                  <p style={{fontSize:11,fontWeight:800,opacity: m.done ? 0.45 : 1,letterSpacing:'-0.3px'}}>
                     {m.amount > 0 ? rub(m.amount) : '—'}
                   </p>
                   {m.done && <p style={{fontSize:9,opacity:0.4,marginTop:2}}>✓ прошёл</p>}
@@ -446,7 +446,7 @@ export default function FinancesSection() {
         </div>
 
         {/* Нетто онлайн */}
-        <div style={{background:'linear-gradient(145deg,#1C4B82 0%,#0F2F52 100%)',borderRadius:22,padding:'20px 22px',color:'white',position:'relative',overflow:'hidden'}}>
+        <div style={{background:'linear-gradient(145deg,#1C4B82 0%,#0F2F52 100%)',borderRadius:22,padding:'14px 18px',color:'white',position:'relative',overflow:'hidden'}}>
           <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
           <div style={{position:'relative'}}>
             <p style={{fontSize:11,fontWeight:600,letterSpacing:'0.5px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>💻 Нетто онлайн</p>
@@ -456,7 +456,7 @@ export default function FinancesSection() {
         </div>
 
         {/* Нетто всё */}
-        <div style={{background:'linear-gradient(145deg,#2C2C2E 0%,#1C1C1E 100%)',borderRadius:22,padding:'20px 22px',color:'white',position:'relative',overflow:'hidden'}}>
+        <div style={{background:'linear-gradient(145deg,#2C2C2E 0%,#1C1C1E 100%)',borderRadius:22,padding:'14px 18px',color:'white',position:'relative',overflow:'hidden'}}>
           <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
           <div style={{position:'relative'}}>
             <p style={{fontSize:11,fontWeight:600,letterSpacing:'0.5px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>📊 Нетто всё · в ₽</p>
