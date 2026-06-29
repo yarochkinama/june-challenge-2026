@@ -23,7 +23,7 @@ interface FinanceData { accounts: Account[]; txs: Tx[] }
 const CREDIT_START = 439000
 const BCN_GOAL     = 250000
 const BCN_M1       = 130000
-const CREDIT_DL    = '2026-07-31'
+const CREDIT_DL    = '2026-08-31'
 const BCN_DL_AUG   = '2026-08-10'
 
 const DEFAULTS: FinanceData = {
@@ -326,7 +326,18 @@ export default function FinancesSection() {
   const paid   = credit ? Math.max(0, CREDIT_START - credit.balance) : 0
   const pct    = Math.min(100, (paid / CREDIT_START) * 100)
   const dl     = daysTo(CREDIT_DL)
-  const creditPill = !credit ? '' : credit.balance === 0 ? '🎉 Закрыто!' : dl > 0 ? `⏱ ${dl} дн. до 31 июля` : dl === 0 ? '🎉 Сегодня!' : '📅 Срок прошёл'
+  const creditPill = !credit ? '' : credit.balance === 0 ? '🎉 Закрыто!' : dl > 0 ? `⏱ ${dl} дн. до 31 авг.` : dl === 0 ? '🎉 Сегодня!' : '📅 Срок прошёл'
+
+  // ── Payment schedule: June 30k fixed, rest split Jul/Aug ──
+  const junePay  = credit ? Math.min(credit.balance, 30000) : 0
+  const afterJun = credit ? Math.max(0, credit.balance - 30000) : 0
+  const julPay   = Math.ceil(afterJun / 2)
+  const augPay   = afterJun - julPay
+  const schedMonths = [
+    { label: 'Июнь', amount: junePay, done: daysTo('2026-07-01') <= 0 },
+    { label: 'Июль', amount: julPay,  done: daysTo('2026-08-01') <= 0 },
+    { label: 'Авг.',  amount: augPay,  done: daysTo('2026-09-01') <= 0 },
+  ]
   const creditSub  = paid > 0 ? `Погашено ${rub(paid)} из ${rub(CREDIT_START)}` : `Начальный долг: ${rub(CREDIT_START)}`
   const bcnPct     = bcn ? Math.min(100, (bcn.balance / BCN_GOAL) * 100) : 0
   const bcnPill    = !bcn ? '' : bcn.balance >= BCN_GOAL ? '🎉 Цель!' : bcn.balance >= BCN_M1 ? `✅ Авг. ок · ещё ${rub(BCN_GOAL-bcn.balance)}` : `До авг.: ещё ${rub(BCN_M1-bcn.balance)} · ${daysTo(BCN_DL_AUG)} дн.`
@@ -407,9 +418,27 @@ export default function FinancesSection() {
             <div style={{background:'rgba(255,255,255,0.2)',borderRadius:100,height:6,marginBottom:5}}>
               <div style={{height:'100%',borderRadius:100,background:'rgba(255,255,255,0.85)',width:`${pct}%`,transition:'width 0.5s ease'}}/>
             </div>
-            <div style={{display:'flex',justifyContent:'space-between',fontSize:11,opacity:0.62,marginBottom:10}}>
-              <span>Остаток долга</span><span>{Math.round(pct)}%</span><span>31 июля ✓</span>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:11,opacity:0.62,marginBottom:12}}>
+              <span>Остаток долга</span><span>{Math.round(pct)}%</span><span>31 авг. ✓</span>
             </div>
+
+            {/* Payment schedule */}
+            <div style={{display:'flex',gap:6,marginBottom:12}}>
+              {schedMonths.map(m => (
+                <div key={m.label} style={{
+                  flex:1, background: m.done ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.18)',
+                  borderRadius:14, padding:'8px 10px', position:'relative',
+                  border: m.done ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.3)',
+                }}>
+                  <p style={{fontSize:10,fontWeight:700,opacity: m.done ? 0.45 : 0.85,marginBottom:3,letterSpacing:'0.3px'}}>{m.label}</p>
+                  <p style={{fontSize:13,fontWeight:800,opacity: m.done ? 0.45 : 1,letterSpacing:'-0.3px'}}>
+                    {m.amount > 0 ? rub(m.amount) : '—'}
+                  </p>
+                  {m.done && <p style={{fontSize:9,opacity:0.4,marginTop:2}}>✓ прошёл</p>}
+                </div>
+              ))}
+            </div>
+
             <span style={{display:'inline-flex',alignItems:'center',background:'rgba(255,255,255,0.16)',borderRadius:100,padding:'4px 12px',fontSize:12,fontWeight:600}}>{creditPill}</span>
           </div>
         </div>
