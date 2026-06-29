@@ -3,14 +3,17 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { AppData, ProfileData } from '@/types'
 import UserDashboard from '@/components/UserDashboard'
+import FinancesSection from '@/components/FinancesSection'
 
 type TabSlug = 'masha' | 'vanya'
+type Section = 'trackers' | 'finances'
 
 export default function HomePage() {
   const [data, setData] = useState<AppData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabSlug>('masha')
+  const [activeSection, setActiveSection] = useState<Section>('trackers')
   const [resetting, setResetting] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -158,84 +161,112 @@ export default function HomePage() {
             <p className="text-xs text-slate-400">1–30 июня 2026</p>
           </div>
 
-          {/* Tab switcher */}
-          <div className="flex gap-2 bg-slate-100 p-1 rounded-2xl">
-            {(['masha', 'vanya'] as TabSlug[]).map((slug) => {
-              const profile = data?.profiles.find((p) => p.slug === slug)
-              const name = profile?.name ?? (slug === 'masha' ? 'Машуня' : 'Ванюша')
-              const emoji = slug === 'masha' ? '🐠' : '⚽'
-              const isActive = activeTab === slug
-              const activeClass =
-                slug === 'masha'
-                  ? 'bg-rose-400 text-white shadow-sm'
-                  : 'bg-blue-400 text-white shadow-sm'
-
-              return (
-                <button
-                  key={slug}
-                  onClick={() => setActiveTab(slug)}
-                  className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200
-                    ${isActive ? activeClass : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                  {emoji} {name}
-                </button>
-              )
-            })}
+          {/* Top-level section switcher */}
+          <div className="flex gap-2 bg-slate-100 p-1 rounded-2xl mb-2">
+            <button
+              onClick={() => setActiveSection('trackers')}
+              className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200
+                ${activeSection === 'trackers' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              🏆 Трекеры
+            </button>
+            <button
+              onClick={() => setActiveSection('finances')}
+              className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200
+                ${activeSection === 'finances' ? 'bg-violet-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              💜 Финансы
+            </button>
           </div>
+
+          {/* Person sub-tabs — only in trackers section */}
+          {activeSection === 'trackers' && (
+            <div className="flex gap-2 bg-slate-100 p-1 rounded-2xl">
+              {(['masha', 'vanya'] as TabSlug[]).map((slug) => {
+                const profile = data?.profiles.find((p) => p.slug === slug)
+                const name = profile?.name ?? (slug === 'masha' ? 'Машуня' : 'Ванюша')
+                const emoji = slug === 'masha' ? '🐠' : '⚽'
+                const isActive = activeTab === slug
+                const activeClass =
+                  slug === 'masha'
+                    ? 'bg-rose-400 text-white shadow-sm'
+                    : 'bg-blue-400 text-white shadow-sm'
+
+                return (
+                  <button
+                    key={slug}
+                    onClick={() => setActiveTab(slug)}
+                    className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200
+                      ${isActive ? activeClass : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    {emoji} {name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
       </header>
 
       {/* Main content */}
       <main className="max-w-lg mx-auto px-4 py-5 pb-20">
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-400 rounded-full animate-spin" />
-            <p className="text-slate-400 text-sm">Загружаем данные…</p>
-          </div>
-        )}
+        {/* Finances section */}
+        {activeSection === 'finances' && <FinancesSection />}
 
-        {error && !loading && (
-          <div className="card p-6 text-center space-y-3">
-            <p className="text-2xl">😕</p>
-            <p className="text-slate-600 font-medium">{error}</p>
-            <button
-              onClick={fetchData}
-              className="bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors"
-            >
-              Попробовать снова
-            </button>
-          </div>
-        )}
+        {/* Trackers section */}
+        {activeSection === 'trackers' && (
+          <>
+            {loading && (
+              <div className="flex flex-col items-center justify-center py-24 gap-4">
+                <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-400 rounded-full animate-spin" />
+                <p className="text-slate-400 text-sm">Загружаем данные…</p>
+              </div>
+            )}
 
-        {!loading && !error && activeProfile && (
-          <UserDashboard
-            profile={activeProfile}
-            onToggle={handleToggle}
-            onWeightSave={handleWeightSave}
-            onWeightDelete={handleWeightDelete}
-          />
-        )}
+            {error && !loading && (
+              <div className="card p-6 text-center space-y-3">
+                <p className="text-2xl">😕</p>
+                <p className="text-slate-600 font-medium">{error}</p>
+                <button
+                  onClick={fetchData}
+                  className="bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors"
+                >
+                  Попробовать снова
+                </button>
+              </div>
+            )}
 
-        {!loading && !error && !activeProfile && (
-          <div className="card p-6 text-center space-y-3">
-            <p className="text-2xl">🌱</p>
-            <p className="text-slate-600 font-medium">Данные не найдены</p>
-            <p className="text-slate-400 text-sm">Запусти seed-скрипт: <code className="bg-slate-100 px-1.5 py-0.5 rounded">npm run db:seed</code></p>
-          </div>
-        )}
+            {!loading && !error && activeProfile && (
+              <UserDashboard
+                profile={activeProfile}
+                onToggle={handleToggle}
+                onWeightSave={handleWeightSave}
+                onWeightDelete={handleWeightDelete}
+              />
+            )}
 
-        {/* Dev-only reset button */}
-        {process.env.NODE_ENV !== 'production' && !loading && data && (
-          <div className="mt-8 pt-6 border-t border-slate-200">
-            <p className="text-xs text-slate-400 text-center mb-2">Dev-режим</p>
-            <button
-              onClick={handleReset}
-              disabled={resetting}
-              className="w-full py-2 px-4 rounded-xl border-2 border-dashed border-slate-300 text-slate-400 text-sm hover:border-red-300 hover:text-red-400 transition-colors disabled:opacity-50"
-            >
-              {resetting ? 'Сброс…' : '🗑 Сбросить тестовые данные'}
-            </button>
-          </div>
+            {!loading && !error && !activeProfile && (
+              <div className="card p-6 text-center space-y-3">
+                <p className="text-2xl">🌱</p>
+                <p className="text-slate-600 font-medium">Данные не найдены</p>
+                <p className="text-slate-400 text-sm">Запусти seed-скрипт: <code className="bg-slate-100 px-1.5 py-0.5 rounded">npm run db:seed</code></p>
+              </div>
+            )}
+
+            {/* Dev-only reset button */}
+            {process.env.NODE_ENV !== 'production' && !loading && data && (
+              <div className="mt-8 pt-6 border-t border-slate-200">
+                <p className="text-xs text-slate-400 text-center mb-2">Dev-режим</p>
+                <button
+                  onClick={handleReset}
+                  disabled={resetting}
+                  className="w-full py-2 px-4 rounded-xl border-2 border-dashed border-slate-300 text-slate-400 text-sm hover:border-red-300 hover:text-red-400 transition-colors disabled:opacity-50"
+                >
+                  {resetting ? 'Сброс…' : '🗑 Сбросить тестовые данные'}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>

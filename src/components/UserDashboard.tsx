@@ -8,7 +8,6 @@ import OneTimeTasks from './OneTimeTasks'
 import DailyCalendar from './DailyCalendar'
 import WeeklyTrainings from './WeeklyTrainings'
 import CounterTask from './CounterTask'
-import FinancesSection from './FinancesSection'
 import WeightTracker from './WeightTracker'
 import CelebrationBlock from './CelebrationBlock'
 
@@ -138,8 +137,6 @@ export default function UserDashboard({ profile, onToggle, onWeightSave, onWeigh
         />
       ))}
 
-      {/* ─── Finances section — Masha only ─── */}
-      {isMasha && <FinancesSection />}
     </div>
   )
 }
