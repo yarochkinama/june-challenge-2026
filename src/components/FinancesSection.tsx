@@ -392,7 +392,6 @@ export default function FinancesSection() {
             <p style={{fontSize:26,fontWeight:800,letterSpacing:'-0.5px',lineHeight:1.1,marginBottom:2}}>{(onlineNW>=0?'+':'−')+rub(Math.abs(onlineNW))}</p>
             <p style={{fontSize:12,opacity:0.68}}>активы {rub(onlineAssets)}</p>
           </div>
-          <span style={{display:'inline-flex',alignItems:'center',background:'rgba(255,255,255,0.16)',borderRadius:100,padding:'6px 14px',fontSize:13,fontWeight:600}}>долг {rub(onlineDebt)}</span>
         </div>
       </div>
 
