@@ -6,6 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 interface Account {
   id: string; name: string; icon: string
   type: 'debt' | 'savings' | 'investment' | 'goal'
+  medium: 'online' | 'cash'
   balance: number; note: string
 }
 interface Tx {
@@ -14,7 +15,7 @@ interface Tx {
 }
 interface FinanceData { accounts: Account[]; txs: Tx[] }
 
-// ── Constants (mirrors finances.html) ────────────────────
+// ── Constants ────────────────────────────────────────────
 const CREDIT_START = 439000
 const BCN_GOAL     = 250000
 const BCN_M1       = 130000
@@ -23,11 +24,11 @@ const BCN_DL_AUG   = '2026-08-10'
 
 const DEFAULTS: FinanceData = {
   accounts: [
-    { id:'credit', name:'Кредитка',    icon:'💳', type:'debt',       balance:439000, note:'Закрыть к 31 июля' },
-    { id:'mag',    name:'Вклад · Маг', icon:'🎓', type:'savings',    balance:190000, note:'Магистратура' },
-    { id:'invest', name:'Инвестиции',  icon:'📈', type:'investment', balance:80000,  note:'' },
-    { id:'vklad',  name:'Вклад 3 мес', icon:'⏳', type:'savings',    balance:50000,  note:'До конца июля' },
-    { id:'bcn',    name:'Барселона',   icon:'✈️', type:'goal',       balance:40000,  note:'/ 250 000 ₽' },
+    { id:'credit', name:'Кредитка',    icon:'💳', type:'debt',       medium:'online', balance:439000, note:'Закрыть к 31 июля' },
+    { id:'mag',    name:'Вклад · Маг', icon:'🎓', type:'savings',    medium:'online', balance:190000, note:'Магистратура' },
+    { id:'invest', name:'Инвестиции',  icon:'📈', type:'investment', medium:'online', balance:80000,  note:'' },
+    { id:'vklad',  name:'Вклад 3 мес', icon:'⏳', type:'savings',    medium:'online', balance:50000,  note:'До конца июля' },
+    { id:'bcn',    name:'Барселона',   icon:'✈️', type:'goal',       medium:'online', balance:40000,  note:'/ 250 000 ₽' },
   ],
   txs: [],
 }
@@ -51,34 +52,52 @@ function daysTo(iso: string) {
 }
 const colorOf = (t: string) => ({debt:'#FF3B30',savings:'#30B95B',investment:'#007AFF',goal:'#BF5AF2'}[t]||'#1C1C1E')
 
+// Ensure all accounts have medium field (backwards compat)
+function normalize(d: FinanceData): FinanceData {
+  return { ...d, accounts: d.accounts.map(a => ({ ...a, medium: (a.medium ?? 'online') as 'online' | 'cash' })) }
+}
+
 // ══════════════════════════════════════════════════════════
 export default function FinancesSection() {
-  // ── Lock state ──
+  // ── Lock ──
   const [lockState, setLockState] = useState<'locked'|'entering'|'unlocked'>('locked')
   const [pwdInput,  setPwdInput]  = useState('')
   const [pwdError,  setPwdError]  = useState('')
   const [isFirst,   setIsFirst]   = useState(false)
 
-  // ── Finance data ──
+  // ── Data ──
   const [data,      setData]      = useState<FinanceData>(DEFAULTS)
   const [apiLoaded, setApiLoaded] = useState(false)
   const [sync,      setSync]      = useState<'ok'|'saving'|'err'>('ok')
   const saveTimer = useRef<ReturnType<typeof setTimeout>|null>(null)
 
-  // ── Modal state ──
-  const [modal,    setModal]    = useState(false)
-  const [selAcc,   setSelAcc]   = useState<string|null>(null)
-  const [sign,     setSign]     = useState<1|-1>(1)
-  const [amt,      setAmt]      = useState('')
-  const [comment,  setComment]  = useState('')
-  const [date,     setDate]     = useState('')
+  // ── Transaction modal ──
+  const [modal,   setModal]   = useState(false)
+  const [selAcc,  setSelAcc]  = useState<string|null>(null)
+  const [sign,    setSign]    = useState<1|-1>(1)
+  const [amt,     setAmt]     = useState('')
+  const [comment, setComment] = useState('')
+  const [date,    setDate]    = useState('')
+
+  // ── Add account modal ──
+  const [addAccModal,   setAddAccModal]   = useState(false)
+  const [addAccMedium,  setAddAccMedium]  = useState<'online'|'cash'>('online')
+  const [addAccName,    setAddAccName]    = useState('')
+  const [addAccIcon,    setAddAccIcon]    = useState('💰')
+  const [addAccType,    setAddAccType]    = useState<Account['type']>('savings')
+  const [addAccBalance, setAddAccBalance] = useState('')
+
+  // ── Edit account modal ──
+  const [editAccId,   setEditAccId]   = useState<string|null>(null)
+  const [editAccName, setEditAccName] = useState('')
+  const [editAccIcon, setEditAccIcon] = useState('')
 
   // ── Init ──
   useEffect(() => {
     setIsFirst(!localStorage.getItem(PWD_KEY))
     try {
       const raw = localStorage.getItem(LOCAL_KEY)
-      if (raw) setData(JSON.parse(raw))
+      if (raw) setData(normalize(JSON.parse(raw)))
     } catch {}
   }, [])
 
@@ -90,7 +109,7 @@ export default function FinancesSection() {
       const res  = await fetch('/api/finances?id=masha')
       const json = await res.json()
       if (json.data) {
-        const parsed = JSON.parse(json.data) as FinanceData
+        const parsed = normalize(JSON.parse(json.data) as FinanceData)
         setData(parsed)
         localStorage.setItem(LOCAL_KEY, json.data)
       }
@@ -175,7 +194,42 @@ export default function FinancesSection() {
   }
   const closeModal = () => { setModal(false); setAmt(''); setComment(''); setSelAcc(null) }
 
-  // Export
+  // ── Add account ──
+  const openAddAcc = (medium: 'online' | 'cash') => {
+    setAddAccMedium(medium); setAddAccName(''); setAddAccIcon('💰')
+    setAddAccType('savings'); setAddAccBalance(''); setAddAccModal(true)
+  }
+  const submitAddAcc = () => {
+    if (!addAccName.trim()) return
+    const bal = parseFloat(addAccBalance) || 0
+    mutate(d => {
+      d.accounts.push({
+        id: String(Date.now()),
+        name: addAccName.trim(),
+        icon: addAccIcon.trim() || '💰',
+        type: addAccType,
+        medium: addAccMedium,
+        balance: bal,
+        note: '',
+      })
+    })
+    setAddAccModal(false)
+  }
+
+  // ── Edit account ──
+  const openEditAcc = (acc: Account) => {
+    setEditAccId(acc.id); setEditAccName(acc.name); setEditAccIcon(acc.icon)
+  }
+  const submitEditAcc = () => {
+    if (!editAccId || !editAccName.trim()) return
+    mutate(d => {
+      const a = d.accounts.find(x => x.id === editAccId)
+      if (a) { a.name = editAccName.trim(); a.icon = editAccIcon.trim() || a.icon }
+    })
+    setEditAccId(null)
+  }
+
+  // ── Export ──
   const exportData = () => {
     const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'})
     const url  = URL.createObjectURL(blob)
@@ -194,8 +248,17 @@ export default function FinancesSection() {
   const creditSub  = paid > 0 ? `Погашено ${rub(paid)} из ${rub(CREDIT_START)}` : `Начальный долг: ${rub(CREDIT_START)}`
   const bcnPct     = bcn ? Math.min(100, (bcn.balance / BCN_GOAL) * 100) : 0
   const bcnPill    = !bcn ? '' : bcn.balance >= BCN_GOAL ? '🎉 Цель!' : bcn.balance >= BCN_M1 ? `✅ Авг. ок · ещё ${rub(BCN_GOAL-bcn.balance)}` : `До авг.: ещё ${rub(BCN_M1-bcn.balance)} · ${daysTo(BCN_DL_AUG)} дн.`
-  const assets = data.accounts.filter(a=>a.type!=='debt').reduce((s,a)=>s+a.balance,0)
-  const nw     = assets - (credit?.balance ?? 0)
+
+  const onlineAccounts = data.accounts.filter(a => (a.medium ?? 'online') === 'online')
+  const cashAccounts   = data.accounts.filter(a => a.medium === 'cash')
+
+  const onlineAssets = onlineAccounts.filter(a => a.type !== 'debt').reduce((s,a) => s+a.balance, 0)
+  const onlineDebt   = onlineAccounts.filter(a => a.type === 'debt').reduce((s,a) => s+a.balance, 0)
+  const onlineNW     = onlineAssets - onlineDebt
+
+  const cashAssets   = cashAccounts.reduce((s,a) => s+a.balance, 0)
+  const totalNW      = onlineNW + cashAssets
+
   const sortedTxs = [...data.txs].sort((a,b)=>b.date.localeCompare(a.date))
 
   // ══════════════════════════════════════════════════════
@@ -225,13 +288,13 @@ export default function FinancesSection() {
   )
 
   // ══════════════════════════════════════════════════════
-  // UNLOCKED — full finance UI
+  // UNLOCKED
   // ══════════════════════════════════════════════════════
   return (
     <>
     <div style={{fontFamily:"inherit"}} className="space-y-3">
 
-      {/* Section header */}
+      {/* Header */}
       <div className="flex items-center justify-between px-1">
         <h3 className="font-semibold text-purple-600">💜 Финансы</h3>
         <div className="flex items-center gap-3">
@@ -250,7 +313,6 @@ export default function FinancesSection() {
           <p style={{fontSize:11,fontWeight:600,letterSpacing:'0.6px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>💳 Кредитка</p>
           <p style={{fontSize:30,fontWeight:800,letterSpacing:'-0.8px',lineHeight:1.1,marginBottom:2}}>{rub(credit?.balance??0)}</p>
           <p style={{fontSize:13,opacity:0.68,marginBottom:12}}>{creditSub}</p>
-          {/* progress bar */}
           <div style={{background:'rgba(255,255,255,0.2)',borderRadius:100,height:6,marginBottom:5,position:'relative'}}>
             <div style={{height:'100%',borderRadius:100,background:'rgba(255,255,255,0.85)',width:`${pct}%`,transition:'width 0.5s ease'}}/>
           </div>
@@ -261,7 +323,7 @@ export default function FinancesSection() {
         </div>
       </div>
 
-      {/* ── HERO row: Barcelona + Networth ── */}
+      {/* ── HERO row: Barcelona + Нетто онлайн ── */}
       <div className="grid grid-cols-2 gap-3">
         {/* Barcelona */}
         <div style={{background:'linear-gradient(145deg,#5856D6 0%,#3B39B0 100%)',borderRadius:22,padding:'18px 18px',color:'white',position:'relative',overflow:'hidden'}}>
@@ -281,35 +343,96 @@ export default function FinancesSection() {
           </div>
         </div>
 
-        {/* Net worth */}
-        <div style={{background:'linear-gradient(145deg,#2C2C2E 0%,#1C1C1E 100%)',borderRadius:22,padding:'18px 18px',color:'white',position:'relative',overflow:'hidden'}}>
+        {/* Нетто онлайн */}
+        <div style={{background:'linear-gradient(145deg,#1C4B82 0%,#0F2F52 100%)',borderRadius:22,padding:'18px 18px',color:'white',position:'relative',overflow:'hidden'}}>
           <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
           <div style={{position:'relative'}}>
-            <p style={{fontSize:10,fontWeight:600,letterSpacing:'0.5px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>📊 Нетто</p>
-            <p style={{fontSize:22,fontWeight:800,letterSpacing:'-0.5px',lineHeight:1.1,marginBottom:2}}>{(nw>=0?'+':'−')+rub(Math.abs(nw))}</p>
-            <p style={{fontSize:12,opacity:0.68,marginBottom:10}}>активы {rub(assets)}</p>
-            <span style={{display:'inline-flex',alignItems:'center',background:'rgba(255,255,255,0.16)',borderRadius:100,padding:'3px 10px',fontSize:11,fontWeight:600}}>долг {rub(credit?.balance??0)}</span>
+            <p style={{fontSize:10,fontWeight:600,letterSpacing:'0.5px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>💻 Нетто онлайн</p>
+            <p style={{fontSize:22,fontWeight:800,letterSpacing:'-0.5px',lineHeight:1.1,marginBottom:2}}>{(onlineNW>=0?'+':'−')+rub(Math.abs(onlineNW))}</p>
+            <p style={{fontSize:12,opacity:0.68,marginBottom:10}}>активы {rub(onlineAssets)}</p>
+            <span style={{display:'inline-flex',alignItems:'center',background:'rgba(255,255,255,0.16)',borderRadius:100,padding:'3px 10px',fontSize:11,fontWeight:600}}>долг {rub(onlineDebt)}</span>
           </div>
         </div>
       </div>
 
-      {/* ── Accounts grid ── */}
-      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mt-1 px-0.5">Счета</p>
-      <div className="grid grid-cols-2 gap-3">
-        {data.accounts.map(acc => (
-          <button key={acc.id} onClick={()=>openModal(acc.id)}
-            className="bg-white rounded-2xl p-4 text-left shadow-sm border border-slate-100 hover:shadow-md active:scale-95 transition-all">
-            <span className="text-2xl block mb-2">{acc.icon}</span>
-            <p className="text-xs text-slate-400 mb-0.5">{acc.name}</p>
-            <p className="text-lg font-bold" style={{color:colorOf(acc.type)}}>
-              {acc.type==='debt'?'−':''}{rub(acc.balance)}
-            </p>
-            {acc.note&&<p className="text-xs text-slate-300 mt-0.5 truncate">{acc.note}</p>}
-          </button>
-        ))}
+      {/* ── Нетто всё ── */}
+      <div style={{background:'linear-gradient(145deg,#2C2C2E 0%,#1C1C1E 100%)',borderRadius:22,padding:'16px 22px',color:'white',position:'relative',overflow:'hidden'}}>
+        <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(255,255,255,0.13) 0%,transparent 55%)',pointerEvents:'none'}}/>
+        <div style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div>
+            <p style={{fontSize:10,fontWeight:600,letterSpacing:'0.5px',textTransform:'uppercase',opacity:0.72,marginBottom:4}}>📊 Нетто всё</p>
+            <p style={{fontSize:26,fontWeight:800,letterSpacing:'-0.5px',lineHeight:1.1}}>{(totalNW>=0?'+':'−')+rub(Math.abs(totalNW))}</p>
+          </div>
+          <div style={{textAlign:'right'}}>
+            <p style={{fontSize:11,opacity:0.55,marginBottom:3}}>💻 онлайн {(onlineNW>=0?'+':'−')+rub(Math.abs(onlineNW))}</p>
+            <p style={{fontSize:11,opacity:0.55}}>💵 наличка +{rub(cashAssets)}</p>
+          </div>
+        </div>
       </div>
 
-      {/* ── Add button ── */}
+      {/* ── Accounts: Online | Cash side by side ── */}
+      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mt-1 px-0.5">Счета</p>
+      <div className="grid grid-cols-2 gap-3 items-start">
+
+        {/* Online column */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-blue-500 px-0.5">💻 Онлайн</p>
+          {onlineAccounts.map(acc => (
+            <div key={acc.id} className="relative">
+              <button onClick={()=>openModal(acc.id)}
+                className="w-full bg-white rounded-2xl p-4 text-left shadow-sm border border-slate-100 hover:shadow-md active:scale-95 transition-all">
+                <span className="text-2xl block mb-2">{acc.icon}</span>
+                <p className="text-xs text-slate-400 mb-0.5 pr-6 leading-tight">{acc.name}</p>
+                <p className="text-base font-bold" style={{color:colorOf(acc.type)}}>
+                  {acc.type==='debt'?'−':''}{rub(acc.balance)}
+                </p>
+                {acc.note&&<p className="text-xs text-slate-300 mt-0.5 truncate">{acc.note}</p>}
+              </button>
+              <button onClick={e=>{e.stopPropagation();openEditAcc(acc)}}
+                className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-lg text-slate-300 hover:text-purple-400 hover:bg-purple-50 transition-all text-xs">
+                ✏️
+              </button>
+            </div>
+          ))}
+          <button onClick={()=>openAddAcc('online')}
+            className="w-full py-3 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 text-sm font-medium hover:border-blue-300 hover:text-blue-400 transition-colors">
+            + счёт
+          </button>
+        </div>
+
+        {/* Cash column */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-emerald-600 px-0.5">💵 Наличка</p>
+          {cashAccounts.map(acc => (
+            <div key={acc.id} className="relative">
+              <button onClick={()=>openModal(acc.id)}
+                className="w-full bg-white rounded-2xl p-4 text-left shadow-sm border border-slate-100 hover:shadow-md active:scale-95 transition-all">
+                <span className="text-2xl block mb-2">{acc.icon}</span>
+                <p className="text-xs text-slate-400 mb-0.5 pr-6 leading-tight">{acc.name}</p>
+                <p className="text-base font-bold" style={{color:colorOf(acc.type)}}>
+                  {acc.type==='debt'?'−':''}{rub(acc.balance)}
+                </p>
+                {acc.note&&<p className="text-xs text-slate-300 mt-0.5 truncate">{acc.note}</p>}
+              </button>
+              <button onClick={e=>{e.stopPropagation();openEditAcc(acc)}}
+                className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-lg text-slate-300 hover:text-purple-400 hover:bg-purple-50 transition-all text-xs">
+                ✏️
+              </button>
+            </div>
+          ))}
+          {cashAccounts.length === 0 && (
+            <div className="bg-slate-50 rounded-2xl p-4 text-center text-slate-300 text-xs border border-dashed border-slate-200">
+              Нет счетов
+            </div>
+          )}
+          <button onClick={()=>openAddAcc('cash')}
+            className="w-full py-3 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 text-sm font-medium hover:border-emerald-300 hover:text-emerald-500 transition-colors">
+            + счёт
+          </button>
+        </div>
+      </div>
+
+      {/* ── Add transaction ── */}
       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-0.5">Операции</p>
       <button onClick={()=>openModal()}
         className="w-full py-4 rounded-2xl text-white text-base font-semibold transition-all active:scale-98"
@@ -317,7 +440,7 @@ export default function FinancesSection() {
         + Записать операцию
       </button>
 
-      {/* ── Transactions ── */}
+      {/* ── Transactions list ── */}
       <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100">
         {sortedTxs.length===0 ? (
           <div className="text-center py-12 text-slate-400">
@@ -325,7 +448,7 @@ export default function FinancesSection() {
             <p className="text-sm">Операций пока нет</p>
           </div>
         ) : sortedTxs.map(tx => {
-          const a   = getAcc(tx.accountId)
+          const a    = getAcc(tx.accountId)
           const isIn = tx.amount > 0
           return (
             <div key={tx.id} className="flex items-center gap-3 px-4 py-3 border-b border-slate-50 last:border-0">
@@ -347,12 +470,10 @@ export default function FinancesSection() {
       </div>
 
       {/* ── Export ── */}
-      <div className="flex gap-2">
-        <button onClick={exportData}
-          className="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200 transition-colors">
-          💾 Экспорт
-        </button>
-      </div>
+      <button onClick={exportData}
+        className="w-full py-3 rounded-2xl bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200 transition-colors">
+        💾 Экспорт JSON
+      </button>
 
     </div>
 
@@ -366,11 +487,9 @@ export default function FinancesSection() {
         <div className="bg-white w-full max-w-lg rounded-t-3xl overflow-y-auto animate-fade-in"
           style={{maxHeight:'92vh',paddingBottom:'env(safe-area-inset-bottom,8px)'}}>
           <div className="px-5 pb-6">
-            {/* Handle */}
             <div className="w-9 h-1 bg-slate-200 rounded-full mx-auto mt-3 mb-5"/>
             <h3 className="text-xl font-bold mb-5">Новая операция</h3>
 
-            {/* Account picker */}
             <div className="mb-4">
               <p className="text-xs font-medium text-slate-400 mb-2">Счёт</p>
               <div className="grid grid-cols-2 gap-2">
@@ -378,7 +497,7 @@ export default function FinancesSection() {
                   <button key={acc.id} onClick={()=>setSelAcc(acc.id)}
                     className={`p-3 rounded-2xl border-2 text-left transition-all ${selAcc===acc.id?'border-purple-400 bg-purple-50':'border-slate-100'}`}>
                     <span className="text-lg block mb-1">{acc.icon}</span>
-                    <span className="text-xs text-slate-400 block">{acc.name}</span>
+                    <span className="text-xs text-slate-400 block leading-tight">{acc.name}</span>
                     <span className="text-sm font-semibold block mt-0.5" style={{color:colorOf(acc.type)}}>
                       {acc.type==='debt'?'−':''}{rub(acc.balance)}
                     </span>
@@ -387,7 +506,6 @@ export default function FinancesSection() {
               </div>
             </div>
 
-            {/* Sign */}
             <div className="mb-4">
               <p className="text-xs font-medium text-slate-400 mb-2">Направление</p>
               <div className="flex gap-2">
@@ -409,7 +527,6 @@ export default function FinancesSection() {
               )}
             </div>
 
-            {/* Amount */}
             <div className="mb-4">
               <p className="text-xs font-medium text-slate-400 mb-2">Сумма</p>
               <input type="number" value={amt} onChange={e=>setAmt(e.target.value)} placeholder="0"
@@ -417,7 +534,6 @@ export default function FinancesSection() {
                 className="w-full border-2 border-slate-100 rounded-2xl px-4 py-3.5 text-base focus:outline-none focus:border-purple-400 transition-colors"/>
             </div>
 
-            {/* Comment */}
             <div className="mb-4">
               <p className="text-xs font-medium text-slate-400 mb-2">Комментарий</p>
               <input type="text" value={comment} onChange={e=>setComment(e.target.value)}
@@ -425,7 +541,6 @@ export default function FinancesSection() {
                 className="w-full border-2 border-slate-100 rounded-2xl px-4 py-3.5 text-base focus:outline-none focus:border-purple-400 transition-colors"/>
             </div>
 
-            {/* Date */}
             <div className="mb-5">
               <p className="text-xs font-medium text-slate-400 mb-2">Дата</p>
               <input type="date" value={date} onChange={e=>setDate(e.target.value)}
@@ -436,6 +551,92 @@ export default function FinancesSection() {
               className="w-full py-4 rounded-2xl text-white text-base font-semibold disabled:opacity-40 transition-opacity"
               style={{background:'#BF5AF2'}}>
               Записать
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ══════════════════════════════════════════════════
+        ADD ACCOUNT MODAL
+    ══════════════════════════════════════════════════ */}
+    {addAccModal && (
+      <div className="fixed inset-0 z-50 flex items-end justify-center"
+        style={{background:'rgba(0,0,0,0.45)',backdropFilter:'blur(6px)'}}
+        onClick={e=>e.target===e.currentTarget&&setAddAccModal(false)}>
+        <div className="bg-white w-full max-w-lg rounded-t-3xl overflow-y-auto animate-fade-in"
+          style={{maxHeight:'92vh',paddingBottom:'env(safe-area-inset-bottom,8px)'}}>
+          <div className="px-5 pb-6">
+            <div className="w-9 h-1 bg-slate-200 rounded-full mx-auto mt-3 mb-5"/>
+            <h3 className="text-xl font-bold mb-1">Новый счёт</h3>
+            <p className="text-sm text-slate-400 mb-5">{addAccMedium==='online'?'💻 Онлайн':'💵 Наличка'}</p>
+
+            {/* Icon + Name */}
+            <div className="flex gap-2 mb-4">
+              <input type="text" value={addAccIcon} onChange={e=>setAddAccIcon(e.target.value)}
+                maxLength={2} placeholder="💰"
+                className="w-16 border-2 border-slate-100 rounded-2xl px-3 py-3.5 text-2xl text-center focus:outline-none focus:border-purple-400 transition-colors"/>
+              <input type="text" value={addAccName} onChange={e=>setAddAccName(e.target.value)}
+                placeholder="Название счёта" autoFocus
+                className="flex-1 border-2 border-slate-100 rounded-2xl px-4 py-3.5 text-base focus:outline-none focus:border-purple-400 transition-colors"/>
+            </div>
+
+            {/* Type */}
+            <div className="mb-4">
+              <p className="text-xs font-medium text-slate-400 mb-2">Тип</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(['savings','investment','goal','debt'] as Account['type'][]).map(t=>(
+                  <button key={t} onClick={()=>setAddAccType(t)}
+                    className={`py-2.5 px-3 rounded-2xl border-2 text-sm font-medium transition-all ${addAccType===t?'border-purple-400 bg-purple-50 text-purple-700':'border-slate-100 text-slate-500'}`}>
+                    {t==='savings'?'💰 Накопления':t==='investment'?'📈 Инвестиции':t==='goal'?'🎯 Цель':'💳 Долг'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Initial balance */}
+            <div className="mb-5">
+              <p className="text-xs font-medium text-slate-400 mb-2">Начальный баланс</p>
+              <input type="number" value={addAccBalance} onChange={e=>setAddAccBalance(e.target.value)}
+                placeholder="0" inputMode="decimal"
+                className="w-full border-2 border-slate-100 rounded-2xl px-4 py-3.5 text-base focus:outline-none focus:border-purple-400 transition-colors"/>
+            </div>
+
+            <button onClick={submitAddAcc} disabled={!addAccName.trim()}
+              className="w-full py-4 rounded-2xl text-white text-base font-semibold disabled:opacity-40 transition-opacity"
+              style={{background:'#BF5AF2'}}>
+              Добавить счёт
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ══════════════════════════════════════════════════
+        EDIT ACCOUNT MODAL
+    ══════════════════════════════════════════════════ */}
+    {editAccId && (
+      <div className="fixed inset-0 z-50 flex items-end justify-center"
+        style={{background:'rgba(0,0,0,0.45)',backdropFilter:'blur(6px)'}}
+        onClick={e=>e.target===e.currentTarget&&setEditAccId(null)}>
+        <div className="bg-white w-full max-w-lg rounded-t-3xl overflow-y-auto animate-fade-in"
+          style={{maxHeight:'92vh',paddingBottom:'env(safe-area-inset-bottom,8px)'}}>
+          <div className="px-5 pb-6">
+            <div className="w-9 h-1 bg-slate-200 rounded-full mx-auto mt-3 mb-5"/>
+            <h3 className="text-xl font-bold mb-5">Редактировать счёт</h3>
+            <div className="flex gap-2 mb-6">
+              <input type="text" value={editAccIcon} onChange={e=>setEditAccIcon(e.target.value)}
+                maxLength={2}
+                className="w-16 border-2 border-slate-100 rounded-2xl px-3 py-3.5 text-2xl text-center focus:outline-none focus:border-purple-400 transition-colors"/>
+              <input type="text" value={editAccName} onChange={e=>setEditAccName(e.target.value)}
+                placeholder="Название" autoFocus
+                onKeyDown={e=>e.key==='Enter'&&submitEditAcc()}
+                className="flex-1 border-2 border-slate-100 rounded-2xl px-4 py-3.5 text-base focus:outline-none focus:border-purple-400 transition-colors"/>
+            </div>
+            <button onClick={submitEditAcc} disabled={!editAccName.trim()}
+              className="w-full py-4 rounded-2xl text-white text-base font-semibold disabled:opacity-40 transition-opacity"
+              style={{background:'#BF5AF2'}}>
+              Сохранить
             </button>
           </div>
         </div>
