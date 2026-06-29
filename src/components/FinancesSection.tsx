@@ -23,7 +23,7 @@ interface FinanceData { accounts: Account[]; txs: Tx[] }
 const CREDIT_START = 439000
 const BCN_GOAL     = 250000
 const BCN_M1       = 130000
-const CREDIT_DL    = '2026-08-31'
+const CREDIT_DL    = '2026-09-30'
 const BCN_DL_AUG   = '2026-08-10'
 
 const DEFAULTS: FinanceData = {
@@ -326,17 +326,19 @@ export default function FinancesSection() {
   const paid   = credit ? Math.max(0, CREDIT_START - credit.balance) : 0
   const pct    = Math.min(100, (paid / CREDIT_START) * 100)
   const dl     = daysTo(CREDIT_DL)
-  const creditPill = !credit ? '' : credit.balance === 0 ? '🎉 Закрыто!' : dl > 0 ? `⏱ ${dl} дн. до 31 авг.` : dl === 0 ? '🎉 Сегодня!' : '📅 Срок прошёл'
+  const creditPill = !credit ? '' : credit.balance === 0 ? '🎉 Закрыто!' : dl > 0 ? `⏱ ${dl} дн. до 30 сент.` : dl === 0 ? '🎉 Сегодня!' : '📅 Срок прошёл'
 
-  // ── Payment schedule: June 30k fixed, rest split Jul/Aug ──
+  // ── Payment schedule: June 30k fixed, rest split Jul/Aug/Sep ──
   const junePay  = credit ? Math.min(credit.balance, 30000) : 0
   const afterJun = credit ? Math.max(0, credit.balance - 30000) : 0
-  const julPay   = Math.ceil(afterJun / 2)
-  const augPay   = afterJun - julPay
+  const julPay   = Math.ceil(afterJun / 3)
+  const augPay   = Math.ceil(afterJun / 3)
+  const sepPay   = afterJun - julPay - augPay
   const schedMonths = [
     { label: 'Июнь', amount: junePay, done: daysTo('2026-07-01') <= 0 },
     { label: 'Июль', amount: julPay,  done: daysTo('2026-08-01') <= 0 },
     { label: 'Авг.',  amount: augPay,  done: daysTo('2026-09-01') <= 0 },
+    { label: 'Сент.', amount: sepPay, done: daysTo('2026-10-01') <= 0 },
   ]
   const creditSub  = paid > 0 ? `Погашено ${rub(paid)} из ${rub(CREDIT_START)}` : `Начальный долг: ${rub(CREDIT_START)}`
   const bcnPct     = bcn ? Math.min(100, (bcn.balance / BCN_GOAL) * 100) : 0
@@ -419,7 +421,7 @@ export default function FinancesSection() {
               <div style={{height:'100%',borderRadius:100,background:'rgba(255,255,255,0.85)',width:`${pct}%`,transition:'width 0.5s ease'}}/>
             </div>
             <div style={{display:'flex',justifyContent:'space-between',fontSize:11,opacity:0.62,marginBottom:12}}>
-              <span>Остаток долга</span><span>{Math.round(pct)}%</span><span>31 авг. ✓</span>
+              <span>Остаток долга</span><span>{Math.round(pct)}%</span><span>30 сент. ✓</span>
             </div>
 
             {/* Payment schedule */}
