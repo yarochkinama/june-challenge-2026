@@ -10,6 +10,7 @@ interface Account {
   medium: 'online' | 'cash'
   currency: Currency
   balance: number; note: string
+  targetBalance?: number
 }
 interface Rates { usd: number; eur: number; mdl: number; fetchedAt: number }
 interface Tx {
@@ -136,9 +137,15 @@ export default function FinancesSection() {
   const [addAccBalance,  setAddAccBalance]  = useState('')
 
   // ── Edit account modal ──
-  const [editAccId,   setEditAccId]   = useState<string|null>(null)
-  const [editAccName, setEditAccName] = useState('')
-  const [editAccIcon, setEditAccIcon] = useState('')
+  const [editAccId,       setEditAccId]       = useState<string|null>(null)
+  const [editAccName,     setEditAccName]     = useState('')
+  const [editAccIcon,     setEditAccIcon]     = useState('')
+  const [editAccType,     setEditAccType]     = useState<Account['type']>('savings')
+  const [editAccMedium,   setEditAccMedium]   = useState<'online'|'cash'>('online')
+  const [editAccCurrency, setEditAccCurrency] = useState<Currency>('RUB')
+  const [editAccBalance,  setEditAccBalance]  = useState('')
+  const [editAccNote,     setEditAccNote]     = useState('')
+  const [editAccTarget,   setEditAccTarget]   = useState('')
 
   // ── Init ──
   useEffect(() => {
@@ -276,13 +283,30 @@ export default function FinancesSection() {
 
   // ── Edit account ──
   const openEditAcc = (acc: Account) => {
-    setEditAccId(acc.id); setEditAccName(acc.name); setEditAccIcon(acc.icon)
+    setEditAccId(acc.id)
+    setEditAccName(acc.name)
+    setEditAccIcon(acc.icon)
+    setEditAccType(acc.type)
+    setEditAccMedium(acc.medium ?? 'online')
+    setEditAccCurrency(acc.currency ?? 'RUB')
+    setEditAccBalance(String(acc.balance))
+    setEditAccNote(acc.note ?? '')
+    setEditAccTarget(acc.targetBalance != null ? String(acc.targetBalance) : '')
   }
   const submitEditAcc = () => {
     if (!editAccId || !editAccName.trim()) return
     mutate(d => {
       const a = d.accounts.find(x => x.id === editAccId)
-      if (a) { a.name = editAccName.trim(); a.icon = editAccIcon.trim() || a.icon }
+      if (a) {
+        a.name     = editAccName.trim()
+        a.icon     = editAccIcon.trim() || a.icon
+        a.type     = editAccType
+        a.medium   = editAccMedium
+        a.currency = editAccCurrency
+        a.balance  = parseFloat(editAccBalance) || a.balance
+        a.note     = editAccNote.trim()
+        a.targetBalance = editAccTarget ? parseFloat(editAccTarget) : undefined
+      }
     })
     setEditAccId(null)
   }
@@ -434,6 +458,19 @@ export default function FinancesSection() {
                     {acc.type==='debt'?'−':''}{fmtCurr(acc.balance, cur)}
                   </p>
                   {rubVal !== null && <p className="text-xs text-slate-400 mt-0.5">≈ {rub(rubVal)}</p>}
+                  {acc.targetBalance != null && acc.targetBalance > 0 && (() => {
+                    const pct = Math.min(100, (acc.balance / acc.targetBalance) * 100)
+                    return (
+                      <div className="mt-2">
+                        <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
+                          <div className="h-full rounded-full transition-all" style={{width:`${pct}%`,background:colorOf(acc.type)}}/>
+                        </div>
+                        <p className="text-xs mt-0.5" style={{color:colorOf(acc.type),opacity:0.7}}>
+                          {Math.round(pct)}% из {fmtCurr(acc.targetBalance, cur)}
+                        </p>
+                      </div>
+                    )
+                  })()}
                   {acc.note&&<p className="text-xs text-slate-300 mt-0.5 truncate">{acc.note}</p>}
                 </button>
                 <button onClick={e=>{e.stopPropagation();openEditAcc(acc)}}
@@ -468,6 +505,19 @@ export default function FinancesSection() {
                     {acc.type==='debt'?'−':''}{fmtCurr(acc.balance, cur)}
                   </p>
                   {rubVal !== null && <p className="text-xs text-slate-400 mt-0.5">≈ {rub(rubVal)}</p>}
+                  {acc.targetBalance != null && acc.targetBalance > 0 && (() => {
+                    const pct = Math.min(100, (acc.balance / acc.targetBalance) * 100)
+                    return (
+                      <div className="mt-2">
+                        <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
+                          <div className="h-full rounded-full transition-all" style={{width:`${pct}%`,background:colorOf(acc.type)}}/>
+                        </div>
+                        <p className="text-xs mt-0.5" style={{color:colorOf(acc.type),opacity:0.7}}>
+                          {Math.round(pct)}% из {fmtCurr(acc.targetBalance, cur)}
+                        </p>
+                      </div>
+                    )
+                  })()}
                   {acc.note&&<p className="text-xs text-slate-300 mt-0.5 truncate">{acc.note}</p>}
                 </button>
                 <button onClick={e=>{e.stopPropagation();openEditAcc(acc)}}
@@ -699,15 +749,87 @@ export default function FinancesSection() {
           <div className="px-5 pb-6">
             <div className="w-9 h-1 bg-slate-200 rounded-full mx-auto mt-3 mb-5"/>
             <h3 className="text-xl font-bold mb-5">Редактировать счёт</h3>
-            <div className="flex gap-2 mb-6">
+
+            {/* Icon + Name */}
+            <div className="flex gap-2 mb-4">
               <input type="text" value={editAccIcon} onChange={e=>setEditAccIcon(e.target.value)}
                 maxLength={2}
                 className="w-16 border-2 border-slate-100 rounded-2xl px-3 py-3.5 text-2xl text-center focus:outline-none focus:border-purple-400 transition-colors"/>
               <input type="text" value={editAccName} onChange={e=>setEditAccName(e.target.value)}
                 placeholder="Название" autoFocus
-                onKeyDown={e=>e.key==='Enter'&&submitEditAcc()}
                 className="flex-1 border-2 border-slate-100 rounded-2xl px-4 py-3.5 text-base focus:outline-none focus:border-purple-400 transition-colors"/>
             </div>
+
+            {/* Type */}
+            <div className="mb-4">
+              <p className="text-xs font-medium text-slate-400 mb-2">Тип</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(['checking','savings','investment','goal','debt'] as Account['type'][]).map(t=>(
+                  <button key={t} onClick={()=>setEditAccType(t)}
+                    className={`py-2.5 px-3 rounded-2xl border-2 text-sm font-medium transition-all ${editAccType===t?'border-purple-400 bg-purple-50 text-purple-700':'border-slate-100 text-slate-500'}`}>
+                    {t==='checking'?'🏦 Операционный':t==='savings'?'💰 Накопления':t==='investment'?'📈 Инвестиции':t==='goal'?'🎯 Цель':'💳 Долг'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Medium */}
+            <div className="mb-4">
+              <p className="text-xs font-medium text-slate-400 mb-2">Где хранится</p>
+              <div className="flex gap-2">
+                <button onClick={()=>setEditAccMedium('online')}
+                  className={`flex-1 py-2.5 rounded-2xl border-2 text-sm font-medium transition-all ${editAccMedium==='online'?'border-purple-400 bg-purple-50 text-purple-700':'border-slate-100 text-slate-500'}`}>
+                  💻 Онлайн
+                </button>
+                <button onClick={()=>setEditAccMedium('cash')}
+                  className={`flex-1 py-2.5 rounded-2xl border-2 text-sm font-medium transition-all ${editAccMedium==='cash'?'border-purple-400 bg-purple-50 text-purple-700':'border-slate-100 text-slate-500'}`}>
+                  💵 Наличка
+                </button>
+              </div>
+            </div>
+
+            {/* Currency */}
+            <div className="mb-4">
+              <p className="text-xs font-medium text-slate-400 mb-2">Валюта</p>
+              <div className="grid grid-cols-4 gap-2">
+                {(['RUB','USD','EUR','MDL'] as Currency[]).map(c=>(
+                  <button key={c} onClick={()=>setEditAccCurrency(c)}
+                    className={`py-2.5 rounded-2xl border-2 text-sm font-bold transition-all ${editAccCurrency===c?'border-purple-400 bg-purple-50 text-purple-700':'border-slate-100 text-slate-500'}`}>
+                    {CURR_SYMBOLS[c]}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-4 gap-2 mt-1">
+                {(['RUB','USD','EUR','MDL'] as Currency[]).map(c=>(
+                  <p key={c} className="text-center text-xs text-slate-400">{c}</p>
+                ))}
+              </div>
+            </div>
+
+            {/* Balance */}
+            <div className="mb-4">
+              <p className="text-xs font-medium text-slate-400 mb-2">Текущий баланс ({editAccCurrency})</p>
+              <input type="number" value={editAccBalance} onChange={e=>setEditAccBalance(e.target.value)}
+                inputMode="decimal"
+                className="w-full border-2 border-slate-100 rounded-2xl px-4 py-3.5 text-base focus:outline-none focus:border-purple-400 transition-colors"/>
+            </div>
+
+            {/* Target */}
+            <div className="mb-4">
+              <p className="text-xs font-medium text-slate-400 mb-2">Цель ({editAccCurrency}) — необязательно</p>
+              <input type="number" value={editAccTarget} onChange={e=>setEditAccTarget(e.target.value)}
+                inputMode="decimal" placeholder="Не задана"
+                className="w-full border-2 border-slate-100 rounded-2xl px-4 py-3.5 text-base focus:outline-none focus:border-purple-400 transition-colors"/>
+            </div>
+
+            {/* Note */}
+            <div className="mb-6">
+              <p className="text-xs font-medium text-slate-400 mb-2">Заметка</p>
+              <input type="text" value={editAccNote} onChange={e=>setEditAccNote(e.target.value)}
+                placeholder="Любой текст…"
+                className="w-full border-2 border-slate-100 rounded-2xl px-4 py-3.5 text-base focus:outline-none focus:border-purple-400 transition-colors"/>
+            </div>
+
             <button onClick={submitEditAcc} disabled={!editAccName.trim()}
               className="w-full py-4 rounded-2xl text-white text-base font-semibold disabled:opacity-40 transition-opacity"
               style={{background:'#BF5AF2'}}>
