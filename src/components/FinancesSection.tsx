@@ -436,9 +436,9 @@ export default function FinancesSection() {
                 const full = pct >= 100
                 return (
                   <div key={m.label} style={{
-                    flex:1, background: m.done && !full ? 'rgba(255,255,255,0.08)' : full ? 'rgba(52,199,89,0.25)' : 'rgba(255,255,255,0.18)',
+                    flex:1, background: m.done && !full ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.18)',
                     borderRadius:14, padding:'8px 10px', position:'relative',
-                    border: full ? '1px solid rgba(52,199,89,0.5)' : m.done ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.3)',
+                    border: m.done && !full ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.3)',
                   }}>
                     <p style={{fontSize:9,fontWeight:700,opacity: m.done && !full ? 0.45 : 0.85,marginBottom:2,letterSpacing:'0.3px'}}>{m.label}</p>
                     <p style={{fontSize:11,fontWeight:800,opacity: m.done && !full ? 0.45 : 1,letterSpacing:'-0.3px'}}>
@@ -447,9 +447,9 @@ export default function FinancesSection() {
                     {m.amount > 0 && (
                       <>
                         <div style={{background:'rgba(255,255,255,0.2)',borderRadius:100,height:3,margin:'5px 0 3px'}}>
-                          <div style={{height:'100%',borderRadius:100,background: full ? '#34C759' : 'rgba(255,255,255,0.85)',width:`${pct}%`,transition:'width 0.4s ease'}}/>
+                          <div style={{height:'100%',borderRadius:100,background:'rgba(255,255,255,0.85)',width:`${pct}%`,transition:'width 0.4s ease'}}/>
                         </div>
-                        <p style={{fontSize:9,fontWeight:700,opacity: full ? 0.9 : 0.6}}>
+                        <p style={{fontSize:9,fontWeight:700,opacity:0.7}}>
                           {full ? '✓ готово' : m.paid > 0 ? `${pct}% (${rub(m.paid)})` : '0%'}
                         </p>
                       </>
