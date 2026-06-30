@@ -334,11 +334,16 @@ export default function FinancesSection() {
   const julPay   = Math.ceil(afterJun / 3)
   const augPay   = Math.ceil(afterJun / 3)
   const sepPay   = afterJun - julPay - augPay
+  // Paid toward credit per month (positive txs on credit account = payments)
+  const paidInMonth = (ym: string) =>
+    data.txs.filter(t => t.accountId === credit?.id && t.amount > 0 && t.date.startsWith(ym))
+            .reduce((s, t) => s + t.amount, 0)
+
   const schedMonths = [
-    { label: 'Июнь', amount: junePay, done: daysTo('2026-07-01') <= 0 },
-    { label: 'Июль', amount: julPay,  done: daysTo('2026-08-01') <= 0 },
-    { label: 'Авг.',  amount: augPay,  done: daysTo('2026-09-01') <= 0 },
-    { label: 'Сент.', amount: sepPay, done: daysTo('2026-10-01') <= 0 },
+    { label: 'Июнь', amount: junePay, done: daysTo('2026-07-01') <= 0, paid: paidInMonth('2026-06') },
+    { label: 'Июль', amount: julPay,  done: daysTo('2026-08-01') <= 0, paid: paidInMonth('2026-07') },
+    { label: 'Авг.',  amount: augPay,  done: daysTo('2026-09-01') <= 0, paid: paidInMonth('2026-08') },
+    { label: 'Сент.', amount: sepPay, done: daysTo('2026-10-01') <= 0, paid: paidInMonth('2026-09') },
   ]
   const creditSub  = paid > 0 ? `Погашено ${rub(paid)} из ${rub(CREDIT_START)}` : `Начальный долг: ${rub(CREDIT_START)}`
   const bcnPct     = bcn ? Math.min(100, (bcn.balance / BCN_GOAL) * 100) : 0
@@ -426,19 +431,32 @@ export default function FinancesSection() {
 
             {/* Payment schedule */}
             <div style={{display:'flex',gap:6,marginBottom:12}}>
-              {schedMonths.map(m => (
-                <div key={m.label} style={{
-                  flex:1, background: m.done ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.18)',
-                  borderRadius:14, padding:'8px 10px', position:'relative',
-                  border: m.done ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.3)',
-                }}>
-                  <p style={{fontSize:9,fontWeight:700,opacity: m.done ? 0.45 : 0.85,marginBottom:2,letterSpacing:'0.3px'}}>{m.label}</p>
-                  <p style={{fontSize:11,fontWeight:800,opacity: m.done ? 0.45 : 1,letterSpacing:'-0.3px'}}>
-                    {m.amount > 0 ? rub(m.amount) : '—'}
-                  </p>
-                  {m.done && <p style={{fontSize:9,opacity:0.4,marginTop:2}}>✓ прошёл</p>}
-                </div>
-              ))}
+              {schedMonths.map(m => {
+                const pct = m.amount > 0 ? Math.min(100, Math.round((m.paid / m.amount) * 100)) : 0
+                const full = pct >= 100
+                return (
+                  <div key={m.label} style={{
+                    flex:1, background: m.done && !full ? 'rgba(255,255,255,0.08)' : full ? 'rgba(52,199,89,0.25)' : 'rgba(255,255,255,0.18)',
+                    borderRadius:14, padding:'8px 10px', position:'relative',
+                    border: full ? '1px solid rgba(52,199,89,0.5)' : m.done ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.3)',
+                  }}>
+                    <p style={{fontSize:9,fontWeight:700,opacity: m.done && !full ? 0.45 : 0.85,marginBottom:2,letterSpacing:'0.3px'}}>{m.label}</p>
+                    <p style={{fontSize:11,fontWeight:800,opacity: m.done && !full ? 0.45 : 1,letterSpacing:'-0.3px'}}>
+                      {m.amount > 0 ? rub(m.amount) : '—'}
+                    </p>
+                    {m.amount > 0 && (
+                      <>
+                        <div style={{background:'rgba(255,255,255,0.2)',borderRadius:100,height:3,margin:'5px 0 3px'}}>
+                          <div style={{height:'100%',borderRadius:100,background: full ? '#34C759' : 'rgba(255,255,255,0.85)',width:`${pct}%`,transition:'width 0.4s ease'}}/>
+                        </div>
+                        <p style={{fontSize:9,fontWeight:700,opacity: full ? 0.9 : 0.6}}>
+                          {full ? '✓ готово' : m.paid > 0 ? `${pct}% (${rub(m.paid)})` : '0%'}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
             <span style={{display:'inline-flex',alignItems:'center',background:'rgba(255,255,255,0.16)',borderRadius:100,padding:'4px 12px',fontSize:12,fontWeight:600}}>{creditPill}</span>
